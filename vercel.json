@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/[...path].js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "functions": {
-    "api/[...path].js": {
+    "api/**/*.js": {
       "runtime": "nodejs18.x",
       "maxDuration": 10
     }
@@ -15,7 +15,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/[...path].js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(css|js|assets|fonts|images|img)/(.*)",

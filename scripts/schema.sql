@@ -121,7 +121,7 @@ INSERT INTO usuarios (nombre, email, password, telefono, role) VALUES
 ('Ana López', 'ana@gmail.com', '$2b$10$YourHashedPasswordHere', '3012345678', 'cliente');
 
 -- Lotes demo
-INSERT INTO lotes (area, ubicacion, valor, estado, etapa, clienteId, pago_tipo) VALUES
+INSERT INTO lotes (area, ubicacion, valor, estado, etapa, clienteid, pago_tipo) VALUES
 (100, 'Sector A — Manzana 1, Lote 1', 45000000, 'disponible', 'Preventa', NULL, 'contado'),
 (120, 'Sector A — Manzana 1, Lote 2', 54000000, 'disponible', 'Preventa', NULL, 'contado'),
 (150, 'Sector B — Manzana 2, Lote 1', 67500000, 'reservado', 'Preventa', 2, 'contado'),
@@ -134,7 +134,7 @@ INSERT INTO lotes (area, ubicacion, valor, estado, etapa, clienteId, pago_tipo) 
 (115, 'Sector E — Manzana 5, Lote 2', 52500000, 'disponible', 'Entrega', NULL, 'contado');
 
 -- Pagos demo
-INSERT INTO pagos (clienteId, clienteNombre, loteId, nCuota, monto, fecha, nota) VALUES
+INSERT INTO pagos (clienteid, clientenombre, loteid, ncuota, monto, fecha, nota) VALUES
 (3, 'María González', 4, 1, 13500000, '2024-02-15', 'Cuota inicial crediticia'),
 (3, 'María González', 4, 2, 13500000, '2024-03-15', 'Segunda cuota'),
 (4, 'Juan Pérez', 9, 1, 10000000, '2024-03-01', 'Pago inicial'),
@@ -142,7 +142,7 @@ INSERT INTO pagos (clienteId, clienteNombre, loteId, nCuota, monto, fecha, nota)
 (2, 'Carlos Rodríguez', 3, 1, 33750000, '2024-01-20', 'Reserva de lote');
 
 -- PQRS demo
-INSERT INTO pqrs (clienteId, clienteNombre, tipo, asunto, descripcion, estado, respuesta) VALUES
+INSERT INTO pqrs (clienteid, clientenombre, tipo, asunto, descripcion, estado, respuesta) VALUES
 (2, 'Carlos Rodríguez', 'peticion', 'Solicitar información', 'Me gustaría conocer más detalles sobre los planos habitacionales', 'resuelto', 'Enviamos los planos a tu correo. Gracias.'),
 (3, 'María González', 'queja', 'Demora en la respuesta', 'No he recibido respuesta sobre mi consulta anterior', 'en_proceso', NULL),
 (NULL, 'Cliente Anónimo', 'sugerencia', 'Mejorar plataforma', 'Sugiero agregar filtro por precio mínimo y máximo', 'pendiente', NULL);
@@ -160,8 +160,8 @@ SELECT
   COALESCE(SUM(p.monto), 0) as total_pagado,
   COALESCE(SUM(l.valor) - SUM(p.monto), SUM(l.valor)) as saldo_pendiente
 FROM usuarios u
-LEFT JOIN lotes l ON l.clienteId = u.id AND l.estado IN ('reservado', 'vendido')
-LEFT JOIN pagos p ON p.clienteId = u.id
+LEFT JOIN lotes l ON l.clienteid = u.id AND l.estado IN ('reservado', 'vendido')
+LEFT JOIN pagos p ON p.clienteid = u.id
 WHERE u.role = 'cliente'
 GROUP BY u.id, u.nombre, u.email;
 

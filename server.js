@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const { Pool } = require('pg');
 const bcrypt = require('bcrypt');
@@ -17,6 +18,17 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 const PORT = 3000;
 
+// Servir contenido estático para la página web principal y los assets
+app.use(express.static(path.join(__dirname)));
+
+// En Vercel, no arrancamos el server de forma local con app.listen
+// porque la plataforma ya lo hace internamente.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Backend TerraVerde corriendo en http://localhost:${PORT}`);
+  });
+}
+
 // CORS más seguro: restringe a orígenes específicos
 const allowedOrigins = [
   'http://localhost:3000',
@@ -32,6 +44,11 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+
+// Servir index.html para rutas que no sean /api/*
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // Conexión a la base de datos
 const db = new Pool({

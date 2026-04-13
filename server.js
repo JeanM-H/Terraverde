@@ -45,8 +45,8 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Servir index.html para rutas que no sean /api/*
-app.get(/^(?!\/api).*/, (req, res) => {
+// Servir index.html para rutas que no sean /api/* y no sean archivos estáticos
+app.get(/^(?!\/(api|css|js|assets|favicon\.ico)).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 

@@ -17,8 +17,8 @@ CREATE TABLE usuarios (
   password VARCHAR(255) NOT NULL,
   telefono VARCHAR(20),
   role VARCHAR(10) NOT NULL DEFAULT 'cliente' CHECK (role IN ('admin', 'cliente')),
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  "updatedAt" TIMESTAMP DEFAULT NOW()
+  createdat TIMESTAMP DEFAULT NOW(),
+  updatedat TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_usuarios_email ON usuarios(email);
@@ -34,41 +34,41 @@ CREATE TABLE lotes (
   valor DECIMAL(14,2) NOT NULL,
   estado VARCHAR(20) NOT NULL DEFAULT 'disponible' CHECK (estado IN ('disponible', 'reservado', 'vendido')),
   etapa VARCHAR(20) NOT NULL CHECK (etapa IN ('Lanzamiento', 'Preventa', 'Construcción', 'Entrega')),
-  "clienteId" INT,
+  clienteid INT,
   pago_tipo VARCHAR(10) NOT NULL DEFAULT 'contado' CHECK (pago_tipo IN ('contado', 'credito')),
   credito_meses INT,
   credito_tasa DECIMAL(6,4),
   credito_total DECIMAL(14,2),
   credito_mensual DECIMAL(14,2),
   credito_pagado DECIMAL(14,2) DEFAULT 0,
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  "updatedAt" TIMESTAMP DEFAULT NOW(),
-  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE SET NULL
+  createdat TIMESTAMP DEFAULT NOW(),
+  updatedat TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (clienteid) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_lotes_estado ON lotes(estado);
 CREATE INDEX idx_lotes_etapa ON lotes(etapa);
-CREATE INDEX idx_lotes_clienteId ON lotes("clienteId");
+CREATE INDEX idx_lotes_clienteId ON lotes(clienteid);
 
 -- ============================================================
 -- TABLA: pagos
 -- ============================================================
 CREATE TABLE pagos (
   id SERIAL PRIMARY KEY,
-  "clienteId" INT NOT NULL,
-  "clienteNombre" VARCHAR(255),
-  "loteId" INT NOT NULL,
-  "nCuota" INT NOT NULL,
+  clienteid INT NOT NULL,
+  clientenombre VARCHAR(255),
+  loteid INT NOT NULL,
+  ncuota INT NOT NULL,
   monto DECIMAL(14,2) NOT NULL,
   fecha DATE NOT NULL,
   nota TEXT,
-  "createdAt" TIMESTAMP DEFAULT NOW(),
-  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE CASCADE,
-  FOREIGN KEY ("loteId") REFERENCES lotes(id) ON DELETE CASCADE
+  createdat TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (clienteid) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (loteid) REFERENCES lotes(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_pagos_clienteId ON pagos("clienteId");
-CREATE INDEX idx_pagos_loteId ON pagos("loteId");
+CREATE INDEX idx_pagos_clienteId ON pagos(clienteid);
+CREATE INDEX idx_pagos_loteId ON pagos(loteid);
 CREATE INDEX idx_pagos_fecha ON pagos(fecha);
 
 -- ============================================================
@@ -76,37 +76,37 @@ CREATE INDEX idx_pagos_fecha ON pagos(fecha);
 -- ============================================================
 CREATE TABLE pqrs (
   id SERIAL PRIMARY KEY,
-  "clienteId" INT,
-  "clienteNombre" VARCHAR(255),
+  clienteid INT,
+  clientenombre VARCHAR(255),
   tipo VARCHAR(15) NOT NULL CHECK (tipo IN ('peticion', 'queja', 'reclamo', 'sugerencia')),
   asunto VARCHAR(255) NOT NULL,
   descripcion TEXT NOT NULL,
   estado VARCHAR(15) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'en_proceso', 'resuelto', 'cerrado')),
   respuesta TEXT,
   fecha TIMESTAMP DEFAULT NOW(),
-  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE SET NULL
+  FOREIGN KEY (clienteid) REFERENCES usuarios(id) ON DELETE SET NULL
 );
 
 CREATE INDEX idx_pqrs_estado ON pqrs(estado);
 CREATE INDEX idx_pqrs_tipo ON pqrs(tipo);
-CREATE INDEX idx_pqrs_clienteId ON pqrs("clienteId");
+CREATE INDEX idx_pqrs_clienteId ON pqrs(clienteid);
 
 -- ============================================================
 -- TABLA: compras
 -- ============================================================
 CREATE TABLE compras (
   id SERIAL PRIMARY KEY,
-  "clienteId" INT NOT NULL,
-  "loteId" INT NOT NULL,
+  clienteid INT NOT NULL,
+  loteid INT NOT NULL,
   fecha TIMESTAMP DEFAULT NOW(),
   monto DECIMAL(14,2),
   estado VARCHAR(15) NOT NULL DEFAULT 'completada' CHECK (estado IN ('completada', 'pendiente', 'cancelada')),
-  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE CASCADE,
-  FOREIGN KEY ("loteId") REFERENCES lotes(id) ON DELETE CASCADE
+  FOREIGN KEY (clienteid) REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY (loteid) REFERENCES lotes(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_compras_clienteId ON compras("clienteId");
-CREATE INDEX idx_compras_loteId ON compras("loteId");
+CREATE INDEX idx_compras_clienteId ON compras(clienteid);
+CREATE INDEX idx_compras_loteId ON compras(loteid);
 
 -- ============================================================
 -- DATOS DE EJEMPLO

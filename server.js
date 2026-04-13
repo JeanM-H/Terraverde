@@ -195,7 +195,7 @@ async function getSaldoPorCliente(clienteId) {
 // --- LOTES (Crear lotes: solo admin) ---
 app.post('/api/lotes', auth.verifyToken, auth.verifyAdmin, async (req, res) => {
   try {
-    const [lotes] = await db.query('SELECT * FROM lotes');
+    const { rows: lotes } = await db.query('SELECT * FROM lotes');
     res.json(lotes);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener lotes', details: err.message });
@@ -206,7 +206,7 @@ app.post('/api/lotes', auth.verifyToken, auth.verifyAdmin, async (req, res) => {
 app.post('/api/lotes/:id/reservar', auth.verifyToken, async (req, res) => {
   const id = parseInt(req.params.id);
   const { clienteId, pago } = req.body;
-  const [lotes] = await db.query('SELECT * FROM lotes WHERE id = $1', [id]);
+  const { rows: lotes } = await db.query('SELECT * FROM lotes WHERE id = $1', [id]);
   const lote = lotes[0];
   if (!lote) return res.status(404).json({ error: 'Lote no encontrado' });
   if (lote.estado !== 'disponible') return res.status(400).json({ error: 'Lote no disponible' });
@@ -219,14 +219,14 @@ app.post('/api/lotes/:id/reservar', auth.verifyToken, async (req, res) => {
     const nota = pago.nota || 'Pago inicial al reservar';
     const tipoPago = pago.tipo || (pago.meses ? 'credito' : 'contado');
 
-    const [usuarioRows] = await db.query('SELECT nombre, email FROM usuarios WHERE id = $1', [clienteId]);
+    const { rows: usuarioRows } = await db.query('SELECT nombre, email FROM usuarios WHERE id = $1', [clienteId]);
     const usuario = usuarioRows[0] || {};
 
-    const [result] = await db.query(
-      'INSERT INTO pagos (clienteId, clienteNombre, loteId, nCuota, monto, fecha, nota) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    const { rows: insertRows } = await db.query(
+      'INSERT INTO pagos (clienteid, clientenombre, loteid, ncuota, monto, fecha, nota) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
       [clienteId, usuario.nombre || '', id, nCuota, pago.monto, fecha, nota]
     );
-    pagoRegistrado = { id: result.insertId, clienteId, loteId: id, nCuota, monto: pago.monto, fecha, nota };
+    pagoRegistrado = { id: insertRows[0].id, clienteId, loteId: id, nCuota, monto: pago.monto, fecha, nota };
 
     // Si es financiación, guarda el plan de cuotas en el lote
     if (tipoPago === 'credito') {
@@ -246,16 +246,18 @@ app.post('/api/lotes/:id/reservar', auth.verifyToken, async (req, res) => {
   }
 
   // Recalcula el total pagado para el lote (suma de todos los pagos)
-  const [[{ totalPagado }]] = await db.query(
-    'SELECT SUM(monto) AS totalPagado FROM pagos WHERE loteId = $1',
+  const { rows: totalRows } = await db.query(
+    'SELECT SUM(monto) AS totalpagado FROM pagos WHERE loteid = $1',
     [id]
   );
+  const totalPagado = Number(totalRows[0]?.totalpagado || 0);
 
   // Re-obtiene el lote para usar los valores actualizados (pago_tipo/credito_total)
-  const [[loteActualizado]] = await db.query(
+  const { rows: loteRows } = await db.query(
     'SELECT valor, pago_tipo, credito_total FROM lotes WHERE id = $1',
     [id]
   );
+  const loteActualizado = loteRows[0] || {};
 
   const valorReferencia = loteActualizado && loteActualizado.pago_tipo === 'credito' && loteActualizado.credito_total
     ? Number(loteActualizado.credito_total)
@@ -263,12 +265,13 @@ app.post('/api/lotes/:id/reservar', auth.verifyToken, async (req, res) => {
 
   const estadoNuevo = totalPagado >= valorReferencia ? 'vendido' : 'reservado';
 
-  await db.query('UPDATE lotes SET estado = $1, clienteId = $2 WHERE id = $3', [estadoNuevo, clienteId, id]);
+  await db.query('UPDATE lotes SET estado = $1, clienteid = $2 WHERE id = $3', [estadoNuevo, clienteId, id]);
 
   // Enviar correo de notificación de reserva (si está configurado SMTP)
   try {
-    const [[usuario]] = await db.query('SELECT nombre, email FROM usuarios WHERE id = $1', [clienteId]);
-    if (usuario && usuario.email) {
+    const { rows: usuarioRows } = await db.query('SELECT nombre, email FROM usuarios WHERE id = $1', [clienteId]);
+    const usuario = usuarioRows[0] || {};
+    if (usuario.email) {
       const transporter = createMailTransporter();
       if (transporter) {
         const pagoTexto = pagoRegistrado ? `\nMonto pagado: $${Number(pagoRegistrado.monto).toLocaleString('es-CO')}` : '';
@@ -296,11 +299,11 @@ app.post('/api/lotes', async (req, res) => {
   if (!area || !valor || !ubicacion || !etapa || !estado) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
-  const [result] = await db.query(
-    'INSERT INTO lotes (area, valor, ubicacion, etapa, estado, clienteId) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+  const { rows } = await db.query(
+    'INSERT INTO lotes (area, valor, ubicacion, etapa, estado, clienteid) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
     [area, valor, ubicacion, etapa, estado, clienteId || null]
   );
-  res.json({ ok: true, id: result.rows[0].id });
+  res.json({ ok: true, id: rows[0].id });
 });
 
 // Editar lote: solo admin
@@ -308,7 +311,7 @@ app.put('/api/lotes/:id', auth.verifyToken, auth.verifyAdmin, async (req, res) =
   const id = parseInt(req.params.id);
   const { area, valor, ubicacion, etapa, estado, clienteId } = req.body;
   await db.query(
-    'UPDATE lotes SET area=$1, valor=$2, ubicacion=$3, etapa=$4, estado=$5, clienteId=$6 WHERE id=$7',
+    'UPDATE lotes SET area=$1, valor=$2, ubicacion=$3, etapa=$4, estado=$5, clienteid=$6 WHERE id=$7',
     [area, valor, ubicacion, etapa, estado, clienteId || null, id]
   );
   res.json({ ok: true });
@@ -338,22 +341,24 @@ app.post('/api/pagos', auth.verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO pagos (clienteId, clienteNombre, loteId, nCuota, monto, fecha, nota) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+    const { rows: insertRows } = await db.query(
+      'INSERT INTO pagos (clienteid, clientenombre, loteid, ncuota, monto, fecha, nota) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
       [clienteId, clienteNombre, loteId, nCuota, monto, fecha, nota]
     );
 
-    const pagoId = result.rows[0].id;
+    const pagoId = insertRows[0].id;
 
     // --- Lógica para cambiar el estado del lote ---
-    const [[{ totalPagado }]] = await db.query(
-      'SELECT SUM(monto) AS totalPagado FROM pagos WHERE clienteId = $1 AND loteId = $2',
+    const { rows: totalRows } = await db.query(
+      'SELECT SUM(monto) AS totalpagado FROM pagos WHERE clienteid = $1 AND loteid = $2',
       [clienteId, loteId]
     );
-    const [[lote]] = await db.query(
+    const totalPagado = Number(totalRows[0]?.totalpagado || 0);
+    const { rows: loteRows } = await db.query(
       'SELECT valor, estado, ubicacion, pago_tipo, credito_total, credito_pagado FROM lotes WHERE id = $1',
       [loteId]
     );
+    const lote = loteRows[0] || {};
 
     // Actualiza crédito pagado si el lote está financiado
     if (lote && lote.pago_tipo === 'credito') {
@@ -365,15 +370,16 @@ app.post('/api/pagos', auth.verifyToken, async (req, res) => {
     const valorReferencia = lote && lote.pago_tipo === 'credito' && lote.credito_total ? Number(lote.credito_total) : Number(lote.valor);
     if (lote && Number(totalPagado) >= valorReferencia && lote.estado !== 'vendido') {
       await db.query(
-        'UPDATE lotes SET estado = ? WHERE id = ?',
+        'UPDATE lotes SET estado = $1 WHERE id = $2',
         ['vendido', loteId]
       );
     }
 
     // Envía comprobante por correo si está configurado
     try {
-      const [[usuario]] = await db.query('SELECT nombre, email FROM usuarios WHERE id = ?', [clienteId]);
-      if (usuario && usuario.email) {
+      const { rows: usuarioRows } = await db.query('SELECT nombre, email FROM usuarios WHERE id = $1', [clienteId]);
+      const usuario = usuarioRows[0] || {};
+      if (usuario.email) {
         await sendPaymentReceiptEmail({
           to: usuario.email,
           nombre: usuario.nombre,
@@ -414,14 +420,14 @@ app.post('/api/compras', auth.verifyToken, async (req, res) => {
 
   try {
     // Verifica que los lotes existan y estén disponibles
-    const [existing] = await db.query('SELECT id, estado FROM lotes WHERE id IN (?)', [lotes]);
+    const { rows: existing } = await db.query('SELECT id, estado FROM lotes WHERE id = ANY($1)', [lotes]);
     const unavailable = existing.filter(l => l.estado !== 'disponible');
     if (unavailable.length) {
       return res.status(400).json({ error: 'Algunos lotes no están disponibles', lotes: unavailable.map(l => l.id) });
     }
 
     // Reserva los lotes (asocia al cliente)
-    await db.query('UPDATE lotes SET estado = ?, clienteId = ? WHERE id IN (?)', ['reservado', clienteId, lotes]);
+    await db.query('UPDATE lotes SET estado = $1, clienteid = $2 WHERE id = ANY($3)', ['reservado', clienteId, lotes]);
 
     res.json({ ok: true, lotesReservados: lotes });
   } catch (err) {
@@ -520,9 +526,11 @@ app.get('/api/pqrs', auth.verifyToken, async (req, res) => {
   try {
     let pqrs;
     if (req.user.role === 'admin') {
-      [pqrs] = await db.query('SELECT * FROM pqrs ORDER BY fecha DESC');
+      const { rows } = await db.query('SELECT * FROM pqrs ORDER BY fecha DESC');
+      pqrs = rows;
     } else {
-      [pqrs] = await db.query('SELECT * FROM pqrs WHERE clienteId = ? ORDER BY fecha DESC', [req.user.id]);
+      const { rows } = await db.query('SELECT * FROM pqrs WHERE clienteid = $1 ORDER BY fecha DESC', [req.user.id]);
+      pqrs = rows;
     }
     res.json(pqrs);
   } catch (err) {
@@ -546,7 +554,7 @@ app.put('/api/pqrs/:id/responder', auth.verifyToken, auth.verifyAdmin, async (re
     }
 
     await db.query(
-      'UPDATE pqrs SET estado = ?, respuesta = ? WHERE id = ?',
+      'UPDATE pqrs SET estado = $1, respuesta = $2 WHERE id = $3',
       [estado, respuesta, id]
     );
     
@@ -566,11 +574,11 @@ app.post('/api/pqrs', auth.verifyToken, async (req, res) => {
     fecha = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
   }
   try {
-    const [resultado] = await db.query(
-      'INSERT INTO pqrs (clienteId, clienteNombre, tipo, asunto, descripcion, estado, fecha, respuesta) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    const { rows: resultado } = await db.query(
+      'INSERT INTO pqrs (clienteid, clientenombre, tipo, asunto, descripcion, estado, fecha, respuesta) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id',
       [clienteId, clienteNombre, tipo, asunto, descripcion, estado, fecha, respuesta || '']
     );
-    res.json({ ok: true, id: resultado.insertId });
+    res.json({ ok: true, id: resultado[0].id });
   } catch (err) {
     console.error('Error al guardar PQRS:', err);
     res.status(500).json({ ok: false, error: 'Error al guardar PQRS', details: err.message });
@@ -593,7 +601,7 @@ app.put('/api/pqrs/:id/responder', auth.verifyToken, auth.verifyAdmin, async (re
     }
 
     await db.query(
-      'UPDATE pqrs SET estado = ?, respuesta = ? WHERE id = ?',
+      'UPDATE pqrs SET estado = $1, respuesta = $2 WHERE id = $3',
       [estado, respuesta, id]
     );
     
@@ -609,7 +617,7 @@ app.put('/api/usuarios/:id', auth.verifyToken, auth.verifySameUserOrAdmin, async
     const id = parseInt(req.params.id);
     const { nombre, telefono } = req.body;
     if (!nombre) return res.status(400).json({ error: 'Faltan datos' });
-    await db.query('UPDATE usuarios SET nombre = ?, telefono = ? WHERE id = ?', [nombre, telefono || null, id]);
+    await db.query('UPDATE usuarios SET nombre = $1, telefono = $2 WHERE id = $3', [nombre, telefono || null, id]);
     res.json({ ok: true, message: 'Usuario actualizado' });
   } catch (err) {
     res.status(500).json({ error: 'Error al actualizar usuario', details: err.message });
@@ -619,7 +627,7 @@ app.put('/api/usuarios/:id', auth.verifyToken, auth.verifySameUserOrAdmin, async
 // Protegido: Solo admin puede listar todos los usuarios
 app.get('/api/usuarios', auth.verifyToken, auth.verifyAdmin, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT id, nombre, email, telefono, role, createdAt FROM usuarios');
+    const { rows } = await db.query('SELECT id, nombre, email, telefono, role, createdat AS "createdAt" FROM usuarios');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: 'Error al obtener usuarios', details: err.message });
@@ -630,8 +638,8 @@ app.get('/api/usuarios', auth.verifyToken, auth.verifyAdmin, async (req, res) =>
 app.get('/api/usuarios/:id', auth.verifyToken, auth.verifySameUserOrAdmin, async (req, res) => {
   try {
     const id = req.params.id;
-    const [rows] = await db.query(
-      'SELECT id, nombre, email, telefono, role, createdAt FROM usuarios WHERE id = ?', 
+    const { rows } = await db.query(
+      'SELECT id, nombre, email, telefono, role, createdat AS "createdAt" FROM usuarios WHERE id = $1', 
       [id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -652,7 +660,7 @@ app.post('/api/usuarios/cambiar-password', auth.verifyToken, async (req, res) =>
     }
 
     // Busca el usuario por ID
-    const [rows] = await db.query('SELECT password FROM usuarios WHERE id = ?', [userId]);
+    const { rows } = await db.query('SELECT password FROM usuarios WHERE id = $1', [userId]);
     if (!rows.length) return res.status(404).json({ error: 'Usuario no encontrado' });
 
     // Compara la contraseña actual con bcrypt
@@ -663,7 +671,7 @@ app.post('/api/usuarios/cambiar-password', auth.verifyToken, async (req, res) =>
 
     // Hashea la nueva contraseña
     const hash = await bcrypt.hash(nueva, 10);
-    await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [hash, userId]);
+    await db.query('UPDATE usuarios SET password = $1 WHERE id = $2', [hash, userId]);
     res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
   } catch (err) {
     res.status(500).json({ error: 'Error al cambiar contraseña', details: err.message });

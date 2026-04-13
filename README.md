@@ -50,7 +50,7 @@
 ### Backend
 - **Node.js** - Runtime de JavaScript
 - **Express.js** - Framework web
-- **MySQL** - Base de datos relacional
+- **PostgreSQL** - Base de datos relacional
 - **JWT** - Autenticación segura
 - **bcrypt** - Encriptación de contraseñas
 - **Nodemailer** - Envío de correos

@@ -211,8 +211,8 @@ async function getSaldoPorCliente(clienteId) {
 
 // --- RUTAS ---
 
-// --- LOTES (Crear lotes: solo admin) ---
-app.post('/api/lotes', auth.verifyToken, auth.verifyAdmin, async (req, res) => {
+// --- LOTES ---
+app.get('/api/lotes', async (req, res) => {
   try {
     const { rows: lotes } = await db.query('SELECT * FROM lotes');
     res.json(lotes);

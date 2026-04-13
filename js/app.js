@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function crearLote(lote) {
-  const res = await fetch('http://localhost:3000/api/lotes', {
+  const res = await fetch('/api/lotes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(lote)
@@ -434,7 +434,7 @@ async function guardarNuevoLote() {
 }
 
 async function llenarSelectClientes() {
-  const res = await fetch('http://localhost:3000/api/usuarios');
+  const res = await fetch('/api/usuarios');
   const clientes = await res.json();
   const select = document.querySelector('select[name="clienteId"]');
   if (!select) return;
@@ -453,7 +453,7 @@ async function reservarLoteCliente(loteId) {
     Toast.show('Debes iniciar sesión para reservar un lote', 'error');
     return;
   }
-  const resp = await fetch(`http://localhost:3000/api/lotes/${loteId}/reservar`, {
+  const resp = await fetch(`/api/lotes/${loteId}/reservar`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ clienteId: session.id })
@@ -476,7 +476,7 @@ async function reservarLoteCliente(loteId) {
  * Uso: await API.get('/api/usuarios'), await API.post('/api/pagos', data)
  */
 const API = {
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
+  baseURL: '',
   
   getHeaders() {
     const headers = { 'Content-Type': 'application/json' };
@@ -572,7 +572,7 @@ function renderPagos(pagos) {
 }
 
 async function cargarLotesParaPago() {
-  const res = await fetch('http://localhost:3000/api/lotes');
+  const res = await fetch('/api/lotes');
   const lotes = await res.json();
   const lotesDisponibles = lotes.filter(lote => lote.estado !== 'vendido');
   const select = document.getElementById('selectLotePago');

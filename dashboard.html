@@ -554,7 +554,7 @@ document.addEventListener('submit', async function(e) {
     const phone = document.getElementById('pPhone').value.trim();
     if (!name) { Validate.setError('pNameErr', 'El nombre es obligatorio'); return; }
     // Envía los cambios al backend
-    const resp = await fetch(`http://localhost:3000/api/usuarios/${session.id}`, {
+    const resp = await fetch(`/api/usuarios/${session.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, phone })
@@ -577,7 +577,7 @@ document.addEventListener('submit', async function(e) {
     const nueva = document.getElementById('nuevaPw').value;
     const user = JSON.parse(localStorage.getItem('tv_session')); // O como obtengas el usuario actual
 
-    const res = await fetch('http://localhost:3000/api/usuarios/cambiar-password', {
+    const res = await fetch('/api/usuarios/cambiar-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -709,13 +709,13 @@ async function guardarLote(id) {
   // Aquí usa el backend real:
   let resp;
   if (id) {
-    resp = await fetch(`http://localhost:3000/api/lotes/${id}`, {
+    resp = await fetch(`/api/lotes/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ area, valor, ubicacion: ubic, etapa, estado, clienteId: cliId ? parseInt(cliId) : null })
     });
   } else {
-    resp = await fetch('http://localhost:3000/api/lotes', {
+    resp = await fetch('/api/lotes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ area, valor, ubicacion: ubic, etapa, estado, clienteId: cliId ? parseInt(cliId) : null })
@@ -986,7 +986,7 @@ async function guardarPago() {
   }
 
   // Llama al backend para guardar el pago
-  const resp = await fetch('http://localhost:3000/api/pagos', {
+  const resp = await fetch('/api/pagos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1030,7 +1030,7 @@ async function cargarPerfil() {
   if (!session) return;
 
   // Pide el usuario actualizado al backend
-  const res = await fetch(`http://localhost:3000/api/usuarios/${session.id}`);
+  const res = await fetch(`/api/usuarios/${session.id}`);
   const user = await res.json();
   console.log('Usuario desde backend:', user);
 

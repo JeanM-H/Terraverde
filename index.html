@@ -216,7 +216,7 @@
   // Ejemplo de uso de fetch para obtener datos de lotes
   async function obtenerLotes() {
     try {
-      const res = await fetch('http://localhost:3000/api/lotes');
+      const res = await fetch('/api/lotes');
       const data = await res.json();
       console.log(data);
       // Aquí puedes manejar los datos recibidos, por ejemplo, mostrarlos en la página

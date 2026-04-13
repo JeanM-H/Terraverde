@@ -103,7 +103,7 @@
           const password = document.getElementById('regPw').value;
           const telefono = document.getElementById('telefono').value.trim(); // <-- AGREGA ESTA LÍNEA
           try {
-            const res = await fetch('http://localhost:3000/api/usuarios', { 
+            const res = await fetch('/api/usuarios', { 
               method: 'POST', 
               headers: { 'Content-Type': 'application/json' }, 
               body: JSON.stringify({ nombre, email, password, telefono }) 
@@ -112,7 +112,7 @@
 
             if (res.ok) {
               // Obtén el usuario recién creado usando el ID
-              const userRes = await fetch(`http://localhost:3000/api/usuarios/${result.id}`);
+              const userRes = await fetch(`/api/usuarios/${result.id}`);
               const userData = await userRes.json();
               localStorage.setItem('tv_session', JSON.stringify(userData.user));
               Toast.show('¡Registro exitoso! Ahora puedes iniciar sesión.', 'success');

@@ -37,12 +37,14 @@ const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost'
 ];
 
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production'
+    ? (process.env.FRONTEND_URL || true)
     : allowedOrigins,
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Servir index.html para rutas que no sean /api/* y no sean archivos estáticos

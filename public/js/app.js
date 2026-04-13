@@ -79,7 +79,6 @@ const Auth = {
     try {
       return JSON.parse(raw);
     } catch {
-      // Valor corrupto en localStorage (ej: "undefined")
       localStorage.removeItem('tv_session');
       return null;
     }
@@ -204,14 +203,12 @@ const Validate = {
    5. UTILIDADES UI
    ============================================================ */
 
-// Toggle visibilidad contraseña
 function togglePw(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-// Indicador de fortaleza de contraseña
 function checkPwStrength(pw, barId) {
   const bar = document.getElementById(barId);
   if (!bar) return;
@@ -226,7 +223,6 @@ function checkPwStrength(pw, barId) {
   bar.style.background = colors[s - 1] || '#e5e7eb';
 }
 
-// Navbar scroll + mobile
 function initNavbar() {
   const nav    = document.getElementById('navbar');
   const toggle = document.getElementById('navToggle');
@@ -236,7 +232,6 @@ function initNavbar() {
     toggle.addEventListener('click', () => links.classList.toggle('open'));
     links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
   }
-  // Mostrar dashboard link si hay sesión
   const s = Auth.getSession();
   if (s && links) {
     const li1 = links.querySelector('li:has(a[href="login.html"])');
@@ -246,7 +241,6 @@ function initNavbar() {
   }
 }
 
-// Modal genérico
 const Modal = {
   open(contentHtml) {
     const ov = document.getElementById('modalOverlay');
@@ -258,15 +252,11 @@ const Modal = {
   close() { document.getElementById('modalOverlay')?.classList.add('hidden'); },
 };
 
-// Sidebar dashboard
 function toggleSidebar() {
   document.getElementById('sidebar')?.classList.toggle('open');
   document.getElementById('sbOverlay')?.classList.toggle('show');
 }
 
-/* ============================================================
-   6. HELPERS DE FORMATO
-   ============================================================ */
 const Fmt = {
   money(n)    { return '$' + Number(n).toLocaleString('es-CO'); },
   date(iso)   { return new Date(iso).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' }); },
@@ -274,9 +264,6 @@ const Fmt = {
   initials(name){ return (name || '?').split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase(); },
 };
 
-/* ============================================================
-   LOTES — helpers globales
-   ============================================================ */
 const Lotes = {
   async getAll() {
     const data = await API.get('/api/lotes');
@@ -360,9 +347,6 @@ const Credit = {
   }
 };
 
-/* ============================================================
-   COMPROBANTE — generar HTML para modal e impresión
-   ============================================================ */
 async function buildComprobante(pago) {
   const lote = await Lotes.getById(pago.loteId) || {};
   return `
@@ -388,9 +372,6 @@ async function buildComprobante(pago) {
   </div>`;
 }
 
-/* ============================================================
-   INIT GLOBAL
-   ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
   seedData();
   initNavbar();
@@ -406,7 +387,6 @@ async function crearLote(lote) {
 }
 
 async function guardarNuevoLote() {
-  // Lee los valores del formulario
   const area = parseInt(document.querySelector('[name="area"]').value);
   const valor = parseFloat(document.querySelector('[name="valor"]').value);
   const ubicacion = document.querySelector('[name="ubicacion"]').value;
@@ -414,19 +394,16 @@ async function guardarNuevoLote() {
   const estado = document.querySelector('[name="estado"]').value;
   const clienteId = document.querySelector('[name="clienteId"]').value || null;
 
-  // Validación básica
   if (!area || !valor || !ubicacion || !etapa || !estado) {
     Toast.show('Completa todos los campos obligatorios', 'error');
     return;
   }
 
-  // Llama a la función que hace el fetch
   const resp = await crearLote({ area, valor, ubicacion, etapa, estado, clienteId: clienteId || null });
 
   if (resp.ok) {
     Toast.show('Lote guardado correctamente', 'success');
     Modal.close();
-    // Recarga la lista de lotes, si tienes una función para eso
     if (typeof loadPage === 'function') loadPage('lotes');
   } else {
     Toast.show('Error al guardar el lote', 'error');
@@ -444,11 +421,9 @@ async function llenarSelectClientes() {
             .join('');
 }
 
-// Llama esta función cuando se muestre el formulario
 document.addEventListener('DOMContentLoaded', llenarSelectClientes);
 
 async function reservarLoteCliente(loteId) {
-  // Asegúrate de tener el id del usuario in session.id
   if (!session || !session.id) {
     Toast.show('Debes iniciar sesión para reservar un lote', 'error');
     return;
@@ -461,20 +436,12 @@ async function reservarLoteCliente(loteId) {
   const data = await resp.json();
   if (data.ok) {
     Toast.show('¡Lote reservado exitosamente!', 'success');
-    // Recarga la lista de lotes para actualizar el estado
     if (typeof loadPage === 'function') loadPage('lotes');
   } else {
     Toast.show(data.error || 'No se pudo reservar el lote', 'error');
   }
 }
 
-/* ============================================================
-   9. HELPER DE FETCH CON JWT
-   ============================================================ */
-/**
- * Función helper para hacer fetch requests con token JWT automático
- * Uso: await API.get('/api/usuarios'), await API.post('/api/pagos', data)
- */
 const API = {
   baseURL: '',
   
@@ -502,7 +469,6 @@ const API = {
       const response = await fetch(url, options);
       
       if (response.status === 401) {
-        // Token expirado o inválido
         localStorage.removeItem('tv_session');
         localStorage.removeItem('tv_token');
         Toast.show('Sesión expirada. Por favor, inicia sesión nuevamente.', 'error');
@@ -549,14 +515,10 @@ function renderPagos(pagos) {
         <button class="btn btn-sm btn-primary" onclick="openComprobante(${p.id})">Ver</button>
       </td>
     </tr>`).join('');
-  // CAMBIA ESTA LÍNEA:
-  // const total = pagos.reduce((sum, pago) => sum + Number(pago.monto || 0), 0);
 
-  // POR ESTO:
   const total = pagos.reduce((sum, pago) => {
     let monto = pago.monto;
     if (typeof monto === 'string') {
-      // Elimina símbolo de dólar, puntos, comas, espacios y deja solo números y punto decimal
       monto = monto.replace(/[^0-9,.-]+/g, '').replace(/\./g, '').replace(',', '.');
     }
     console.log('Original:', pago.monto, 'Procesado:', monto);

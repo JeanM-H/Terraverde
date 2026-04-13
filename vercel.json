@@ -3,10 +3,7 @@
   "public": false,
   "buildCommand": "npm install",
   "env": {
-    "DB_HOST": "@db_host",
-    "DB_USER": "@db_user",
-    "DB_PASSWORD": "@db_password",
-    "DB_NAME": "@db_name",
+    "DATABASE_URL": "@database_url",
     "JWT_SECRET": "@jwt_secret",
     "SMTP_HOST": "@smtp_host",
     "SMTP_PORT": "@smtp_port",

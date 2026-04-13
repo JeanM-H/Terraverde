@@ -1,108 +1,112 @@
 -- ============================================================
--- TerraVerde — Script de Base de Datos MySQL
+-- TerraVerde — Script de Base de Datos PostgreSQL
 -- ADSO-19 | Sistema Web de Gestión de Venta de Lotes
 -- ============================================================
 
--- Crear base de datos
-DROP DATABASE IF EXISTS terraverde;
-CREATE DATABASE terraverde CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE terraverde;
+-- Crear base de datos (en Supabase ya existe)
+-- DROP DATABASE IF EXISTS terraverde;
+-- CREATE DATABASE terraverde;
 
 -- ============================================================
 -- TABLA: usuarios
 -- ============================================================
 CREATE TABLE usuarios (
-  id INT PRIMARY KEY AUTO_INCREMENT,
+  id SERIAL PRIMARY KEY,
   nombre VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   telefono VARCHAR(20),
-  role ENUM('admin', 'cliente') NOT NULL DEFAULT 'cliente',
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_role (role)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  role VARCHAR(10) NOT NULL DEFAULT 'cliente' CHECK (role IN ('admin', 'cliente')),
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "updatedAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_usuarios_role ON usuarios(role);
 
 -- ============================================================
 -- TABLA: lotes
 -- ============================================================
 CREATE TABLE lotes (
-  id INT PRIMARY KEY AUTO_INCREMENT,
+  id SERIAL PRIMARY KEY,
   area INT NOT NULL,
   ubicacion VARCHAR(255) NOT NULL,
   valor DECIMAL(14,2) NOT NULL,
-  estado ENUM('disponible', 'reservado', 'vendido') NOT NULL DEFAULT 'disponible',
-  etapa ENUM('Lanzamiento', 'Preventa', 'Construcción', 'Entrega') NOT NULL,
-  clienteId INT,
-  pago_tipo ENUM('contado', 'credito') NOT NULL DEFAULT 'contado',
+  estado VARCHAR(20) NOT NULL DEFAULT 'disponible' CHECK (estado IN ('disponible', 'reservado', 'vendido')),
+  etapa VARCHAR(20) NOT NULL CHECK (etapa IN ('Lanzamiento', 'Preventa', 'Construcción', 'Entrega')),
+  "clienteId" INT,
+  pago_tipo VARCHAR(10) NOT NULL DEFAULT 'contado' CHECK (pago_tipo IN ('contado', 'credito')),
   credito_meses INT,
   credito_tasa DECIMAL(6,4),
   credito_total DECIMAL(14,2),
   credito_mensual DECIMAL(14,2),
   credito_pagado DECIMAL(14,2) DEFAULT 0,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (clienteId) REFERENCES usuarios(id) ON DELETE SET NULL,
-  INDEX idx_estado (estado),
-  INDEX idx_etapa (etapa),
-  INDEX idx_clienteId (clienteId)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  "updatedAt" TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_lotes_estado ON lotes(estado);
+CREATE INDEX idx_lotes_etapa ON lotes(etapa);
+CREATE INDEX idx_lotes_clienteId ON lotes("clienteId");
 
 -- ============================================================
 -- TABLA: pagos
 -- ============================================================
 CREATE TABLE pagos (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  clienteId INT NOT NULL,
-  clienteNombre VARCHAR(255),
-  loteId INT NOT NULL,
-  nCuota INT NOT NULL,
+  id SERIAL PRIMARY KEY,
+  "clienteId" INT NOT NULL,
+  "clienteNombre" VARCHAR(255),
+  "loteId" INT NOT NULL,
+  "nCuota" INT NOT NULL,
   monto DECIMAL(14,2) NOT NULL,
   fecha DATE NOT NULL,
   nota TEXT,
-  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (clienteId) REFERENCES usuarios(id) ON DELETE CASCADE,
-  FOREIGN KEY (loteId) REFERENCES lotes(id) ON DELETE CASCADE,
-  INDEX idx_clienteId (clienteId),
-  INDEX idx_loteId (loteId),
-  INDEX idx_fecha (fecha)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  "createdAt" TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY ("loteId") REFERENCES lotes(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_pagos_clienteId ON pagos("clienteId");
+CREATE INDEX idx_pagos_loteId ON pagos("loteId");
+CREATE INDEX idx_pagos_fecha ON pagos(fecha);
 
 -- ============================================================
 -- TABLA: pqrs
 -- ============================================================
 CREATE TABLE pqrs (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  clienteId INT,
-  clienteNombre VARCHAR(255),
-  tipo ENUM('peticion', 'queja', 'reclamo', 'sugerencia') NOT NULL,
+  id SERIAL PRIMARY KEY,
+  "clienteId" INT,
+  "clienteNombre" VARCHAR(255),
+  tipo VARCHAR(15) NOT NULL CHECK (tipo IN ('peticion', 'queja', 'reclamo', 'sugerencia')),
   asunto VARCHAR(255) NOT NULL,
   descripcion TEXT NOT NULL,
-  estado ENUM('pendiente', 'en_proceso', 'resuelto', 'cerrado') NOT NULL DEFAULT 'pendiente',
+  estado VARCHAR(15) NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'en_proceso', 'resuelto', 'cerrado')),
   respuesta TEXT,
-  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (clienteId) REFERENCES usuarios(id) ON DELETE SET NULL,
-  INDEX idx_estado (estado),
-  INDEX idx_tipoIdx (tipo),
-  INDEX idx_clienteId (clienteId)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  fecha TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_pqrs_estado ON pqrs(estado);
+CREATE INDEX idx_pqrs_tipo ON pqrs(tipo);
+CREATE INDEX idx_pqrs_clienteId ON pqrs("clienteId");
 
 -- ============================================================
 -- TABLA: compras
 -- ============================================================
 CREATE TABLE compras (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  clienteId INT NOT NULL,
-  loteId INT NOT NULL,
-  fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  id SERIAL PRIMARY KEY,
+  "clienteId" INT NOT NULL,
+  "loteId" INT NOT NULL,
+  fecha TIMESTAMP DEFAULT NOW(),
   monto DECIMAL(14,2),
-  estado ENUM('completada', 'pendiente', 'cancelada') NOT NULL DEFAULT 'completada',
-  FOREIGN KEY (clienteId) REFERENCES usuarios(id) ON DELETE CASCADE,
-  FOREIGN KEY (loteId) REFERENCES lotes(id) ON DELETE CASCADE,
-  INDEX idx_clienteId (clienteId),
-  INDEX idx_loteId (loteId)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  estado VARCHAR(15) NOT NULL DEFAULT 'completada' CHECK (estado IN ('completada', 'pendiente', 'cancelada')),
+  FOREIGN KEY ("clienteId") REFERENCES usuarios(id) ON DELETE CASCADE,
+  FOREIGN KEY ("loteId") REFERENCES lotes(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_compras_clienteId ON compras("clienteId");
+CREATE INDEX idx_compras_loteId ON compras("loteId");
 
 -- ============================================================
 -- DATOS DE EJEMPLO

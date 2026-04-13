@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Proyecto — TerraVerde</title>  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo"><span class="logo-dot">◈</span> TerraVerde</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="proyecto.html" class="active">Proyecto</a></li>
+      <li><a href="lotes.html">Lotes</a></li>
+      <li><a href="pqrs.html">PQRS</a></li>
+      <li><a href="login.html" class="btn btn-ghost btn-sm">Iniciar Sesión</a></li>
+      <li><a href="registro.html" class="btn btn-primary btn-sm">Registrarse</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Menú"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="container">
+    <h1>Urbanización TerraVerde</h1>
+    <p>Un proyecto habitacional diseñado para familias colombianas</p>
+  </div>
+</section>
+
+<!-- DESCRIPCIÓN GENERAL -->
+<section class="section">
+  <div class="container">
+    <div class="proyecto-hero-grid">
+      <div>
+        <span class="section-tag">Descripción General</span>
+        <h2 class="ph-title">Un proyecto diseñado<br>para tu familia</h2>
+        <p class="ph-text">TerraVerde es un desarrollo habitacional ubicado en una zona de alta valorización, con lotes de entre 100m² y 200m² disponibles para que construyas la vivienda de tus sueños.</p>
+        <p class="ph-text">El proyecto cuenta con todos los servicios públicos, vías pavimentadas, zonas verdes, parques y áreas comunes para el disfrute de toda la familia.</p>
+        <p class="ph-text">Cada lote adquirido incluye <strong>modelos de planos habitacionales de forma gratuita</strong>, con diseños para 2, 3 y 4 habitaciones, adaptables a las dimensiones del lote.</p>
+        <div class="feat-grid">
+          <div class="feat-item"><span class="feat-icon">🌳</span>Zonas verdes</div>
+          <div class="feat-item"><span class="feat-icon">💧</span>Servicios públicos</div>
+          <div class="feat-item"><span class="feat-icon">🛣️</span>Vías pavimentadas</div>
+          <div class="feat-item"><span class="feat-icon">🔐</span>Seguridad 24/7</div>
+          <div class="feat-item"><span class="feat-icon">📐</span>Planos gratis</div>
+          <div class="feat-item"><span class="feat-icon">💳</span>Pago por cuotas</div>
+        </div>
+      </div>
+      <div>
+        <div class="proyecto-mapa">
+          <div class="pm-title">Distribución del Proyecto (Simulación)</div>
+          <div class="pm-grid">
+            <div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div>
+            <div class="pm-cell via"></div><div class="pm-cell lote"></div><div class="pm-cell lote"></div><div class="pm-cell lote"></div><div class="pm-cell via"></div>
+            <div class="pm-cell via"></div><div class="pm-cell lote"></div><div class="pm-cell verde"></div><div class="pm-cell lote"></div><div class="pm-cell via"></div>
+            <div class="pm-cell via"></div><div class="pm-cell lote"></div><div class="pm-cell lote"></div><div class="pm-cell eq"></div><div class="pm-cell via"></div>
+            <div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div><div class="pm-cell via"></div>
+          </div>
+          <div class="pm-legend">
+            <span><i style="background:var(--blue);opacity:.75"></i>Lotes</span>
+            <span><i style="background:var(--green);opacity:.75"></i>Zona verde</span>
+            <span><i style="background:var(--yellow);opacity:.8"></i>Equipamiento</span>
+            <span><i style="background:#9ca3af"></i>Vías</span>
+          </div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px;background:var(--gray-light);border-radius:var(--r-sm);padding:1rem;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--blue)">4</div>
+            <div style="font-size:.78rem;color:var(--gray-text);font-weight:600">Sectores</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:var(--gray-light);border-radius:var(--r-sm);padding:1rem;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--green)">150+</div>
+            <div style="font-size:.78rem;color:var(--gray-text);font-weight:600">Lotes Totales</div>
+          </div>
+          <div style="flex:1;min-width:120px;background:var(--gray-light);border-radius:var(--r-sm);padding:1rem;text-align:center">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--yellow)">85%</div>
+            <div style="font-size:.78rem;color:var(--gray-text);font-weight:600">Ocupado</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ETAPAS DEL NEGOCIO -->
+<section class="section" style="background:var(--gray-light)">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Etapas del Negocio</span>
+      <h2>Así funciona el proceso</h2>
+      <p>Conoce cada fase del proyecto y qué puedes esperar en cada una de ellas.</p>
+    </div>
+    <div class="etapas-list">
+      <div class="etapa-row">
+        <div class="etapa-n done">01</div>
+        <div class="etapa-info">
+          <h3>Lanzamiento</h3>
+          <p>Presentación oficial del proyecto a inversores y primeros compradores. Se ofrecieron precios de inauguración con descuentos especiales del 15% sobre el valor base. Los primeros 30 compradores accedieron a condiciones únicas de financiamiento.</p>
+          <span class="badge badge-green">Completado ✓</span>
+        </div>
+      </div>
+      <div class="etapa-row">
+        <div class="etapa-n curr">02</div>
+        <div class="etapa-info">
+          <h3>Preventa</h3>
+          <p>Fase activa de comercialización con precios preferenciales. Los compradores pueden seleccionar la ubicación exacta de su lote dentro del proyecto. Se acepta financiamiento por cuotas con seguimiento digital desde la plataforma.</p>
+          <span class="badge badge-yellow">En Curso</span>
+        </div>
+      </div>
+      <div class="etapa-row">
+        <div class="etapa-n next">03</div>
+        <div class="etapa-info">
+          <h3>Construcción y Urbanización</h3>
+          <p>Inicio de obras de infraestructura: instalación de redes eléctricas, acueducto, alcantarillado, telecomunicaciones, pavimentación de vías y construcción de zonas comunes, parques y áreas de equipamiento.</p>
+          <span class="badge badge-gray">Próximo — Est. 2025 Q2</span>
+        </div>
+      </div>
+      <div class="etapa-row">
+        <div class="etapa-n next">04</div>
+        <div class="etapa-info">
+          <h3>Entrega y Escrituración</h3>
+          <p>Escrituración y entrega formal de lotes a sus propietarios. Se realiza el acta de entrega, levantamiento topográfico individual y se entregan los modelos de planos habitacionales gratuitos para iniciar la construcción.</p>
+          <span class="badge badge-gray">Próximo — Est. 2025 Q4</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLANOS HABITACIONALES -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">Planos Habitacionales Gratuitos</span>
+      <h2>Incluidos con cada lote</h2>
+      <p>Al adquirir cualquier lote, recibes acceso gratuito a estos modelos de planos diseñados por arquitectos certificados.</p>
+    </div>
+    <div class="planos-grid">
+      <!-- PLANO 1 -->
+      <div class="plano-card">
+        <div class="plano-preview">
+          <svg viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="8" width="204" height="154" fill="none" stroke="#1E3A8A" stroke-width="2.5"/>
+            <!-- Sala -->
+            <rect x="8" y="8" width="95" height="80" fill="#dbeafe" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="55" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#1E3A8A">Sala / Comedor</text>
+            <!-- Cocina -->
+            <rect x="103" y="8" width="109" height="80" fill="#dcfce7" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="157" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#16a34a">Cocina</text>
+            <!-- Hab 1 -->
+            <rect x="8" y="88" width="105" height="74" fill="#fef9c3" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="60" y="129" text-anchor="middle" font-size="10" font-weight="600" fill="#854d0e">Hab. Principal</text>
+            <!-- Hab 2 -->
+            <rect x="113" y="88" width="99" height="74" fill="#fee2e2" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="162" y="129" text-anchor="middle" font-size="10" font-weight="600" fill="#991b1b">Hab. 2</text>
+            <!-- Baño -->
+            <rect x="8" y="88" width="30" height="30" fill="#e0e7ff" stroke="#1E3A8A" stroke-width="1"/>
+            <text x="23" y="107" text-anchor="middle" font-size="7" fill="#4338ca">Baño</text>
+          </svg>
+        </div>
+        <div class="plano-info">
+          <h4>Modelo Básico — 2 Hab.</h4>
+          <p>Sala-comedor integrado, cocina, 2 habitaciones, 1 baño. Ideal para lotes de 100m².</p>
+          <span class="badge badge-green">Incluido gratis ✓</span>
+        </div>
+      </div>
+      <!-- PLANO 2 -->
+      <div class="plano-card highlight">
+        <div class="plano-preview">
+          <svg viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="5" width="210" height="160" fill="none" stroke="#1E3A8A" stroke-width="2.5"/>
+            <rect x="5" y="5" width="70" height="100" fill="#dbeafe" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="40" y="58" text-anchor="middle" font-size="9" font-weight="600" fill="#1E3A8A">Sala</text>
+            <rect x="75" y="5" width="140" height="55" fill="#dcfce7" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="145" y="36" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Cocina / Comedor</text>
+            <rect x="75" y="60" width="65" height="105" fill="#fef9c3" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="107" y="116" text-anchor="middle" font-size="9" font-weight="600" fill="#854d0e">Hab. 1</text>
+            <rect x="140" y="60" width="75" height="105" fill="#fee2e2" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="177" y="116" text-anchor="middle" font-size="9" font-weight="600" fill="#991b1b">Hab. 2</text>
+            <rect x="5" y="105" width="70" height="60" fill="#ede9fe" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="40" y="138" text-anchor="middle" font-size="9" font-weight="600" fill="#6d28d9">Hab. 3</text>
+            <rect x="75" y="105" width="35" height="60" fill="#e0e7ff" stroke="#1E3A8A" stroke-width="1"/>
+            <text x="92" y="138" text-anchor="middle" font-size="7" fill="#4338ca">Baños</text>
+          </svg>
+        </div>
+        <div class="plano-info">
+          <h4>Modelo Familiar — 3 Hab.</h4>
+          <p>Sala, comedor-cocina, 3 habitaciones, 2 baños. El más solicitado. Para lotes de 150m².</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+            <span class="badge badge-blue">Más popular ⭐</span>
+            <span class="badge badge-green">Incluido gratis ✓</span>
+          </div>
+        </div>
+      </div>
+      <!-- PLANO 3 -->
+      <div class="plano-card">
+        <div class="plano-preview">
+          <svg viewBox="0 0 220 170" xmlns="http://www.w3.org/2000/svg">
+            <rect x="5" y="5" width="210" height="160" fill="none" stroke="#1E3A8A" stroke-width="2.5"/>
+            <rect x="5" y="5" width="100" height="70" fill="#dbeafe" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="55" y="44" text-anchor="middle" font-size="9" font-weight="600" fill="#1E3A8A">Sala / Comedor</text>
+            <rect x="105" y="5" width="110" height="70" fill="#dcfce7" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="160" y="44" text-anchor="middle" font-size="9" font-weight="600" fill="#16a34a">Cocina + Estudio</text>
+            <rect x="5" y="75" width="52" height="90" fill="#fef9c3" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="31" y="123" text-anchor="middle" font-size="8" font-weight="600" fill="#854d0e">Hab.1</text>
+            <rect x="57" y="75" width="52" height="90" fill="#fee2e2" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="83" y="123" text-anchor="middle" font-size="8" font-weight="600" fill="#991b1b">Hab.2</text>
+            <rect x="109" y="75" width="52" height="90" fill="#ede9fe" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="135" y="123" text-anchor="middle" font-size="8" font-weight="600" fill="#6d28d9">Hab.3</text>
+            <rect x="161" y="75" width="54" height="90" fill="#fce7f3" stroke="#1E3A8A" stroke-width="1.5"/>
+            <text x="188" y="123" text-anchor="middle" font-size="8" font-weight="600" fill="#be185d">Hab.4</text>
+            <rect x="5" y="75" width="25" height="35" fill="#e0e7ff" stroke="#1E3A8A" stroke-width="1"/>
+            <text x="17" y="96" text-anchor="middle" font-size="6" fill="#4338ca">Baño</text>
+          </svg>
+        </div>
+        <div class="plano-info">
+          <h4>Modelo Premium — 4 Hab.</h4>
+          <p>Sala, comedor, cocina, estudio, 4 habitaciones, 2 baños. Para lotes de 180–200m².</p>
+          <span class="badge badge-green">Incluido gratis ✓</span>
+        </div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:2.5rem">
+      <p style="color:var(--gray-text);margin-bottom:1rem">¿Listo para elegir tu lote y recibir tus planos?</p>
+      <a href="lotes.html" class="btn btn-primary btn-lg">Ver Lotes Disponibles →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>¿El proyecto te convenció?</h2>
+    <p>Reserva tu lote hoy y asegura el precio de preventa antes de que suban.</p>
+    <a href="registro.html" class="btn btn-primary btn-lg" style="background:#4ade80;color:#0a2e18">Registrarme y Reservar →</a>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand"><a href="index.html" class="nav-logo" style="color:#fff"><span class="logo-dot">◈</span> TerraVerde</a><p>Proyecto habitacional ADSO-19.</p></div>
+    <div class="footer-col"><h4>Navegación</h4><a href="index.html">Inicio</a><a href="lotes.html">Lotes</a><a href="pqrs.html">PQRS</a></div>
+    <div class="footer-col"><h4>Contacto</h4><p>📧 info@terraverde.co</p><p>📞 +57 300 123 4567</p></div>
+  </div>
+  <div class="footer-bottom">© 2024 TerraVerde. Todos los derechos reservados.</div>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>

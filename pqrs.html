@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PQRS — TerraVerde</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo"><span class="logo-dot">◈</span> TerraVerde</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="proyecto.html">Proyecto</a></li>
+      <li><a href="lotes.html">Lotes</a></li>
+      <li><a href="pqrs.html" class="active">PQRS</a></li>
+      <li><a href="login.html" class="btn btn-ghost btn-sm">Iniciar Sesión</a></li>
+      <li><a href="registro.html" class="btn btn-primary btn-sm">Registrarse</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Menú"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="container">
+    <h1>PQRS</h1>
+    <p>Peticiones · Quejas · Reclamos · Sugerencias</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+
+    <!-- DESCRIPCIÓN DE TIPOS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:3rem">
+      <div style="background:var(--blue-light);border-radius:var(--r);padding:1.25rem;border-left:4px solid var(--blue)">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">📝</div>
+        <h4 style="font-weight:700;color:var(--blue);margin-bottom:.3rem">Petición</h4>
+        <p style="font-size:.85rem;color:var(--gray-text)">Solicitud de información, documentos o servicios relacionados con tu lote o el proyecto.</p>
+      </div>
+      <div style="background:#fee2e2;border-radius:var(--r);padding:1.25rem;border-left:4px solid var(--red)">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">😤</div>
+        <h4 style="font-weight:700;color:var(--red);margin-bottom:.3rem">Queja</h4>
+        <p style="font-size:.85rem;color:var(--gray-text)">Manifestación de inconformidad sobre el incumplimiento de condiciones o servicios esperados.</p>
+      </div>
+      <div style="background:#fef9c3;border-radius:var(--r);padding:1.25rem;border-left:4px solid var(--yellow)">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">⚠️</div>
+        <h4 style="font-weight:700;color:var(--yellow);margin-bottom:.3rem">Reclamo</h4>
+        <p style="font-size:.85rem;color:var(--gray-text)">Solicitud de corrección ante incumplimientos de derechos como comprador del proyecto.</p>
+      </div>
+      <div style="background:var(--green-light);border-radius:var(--r);padding:1.25rem;border-left:4px solid var(--green)">
+        <div style="font-size:1.5rem;margin-bottom:.5rem">💡</div>
+        <h4 style="font-weight:700;color:var(--green);margin-bottom:.3rem">Sugerencia</h4>
+        <p style="font-size:.85rem;color:var(--gray-text)">Propuesta para mejorar el proyecto, los servicios o la experiencia de los propietarios.</p>
+      </div>
+    </div>
+
+    <div class="pqrs-split">
+      <!-- FORMULARIO -->
+      <div>
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--gray-mid);padding:1.75rem;box-shadow:var(--sh-sm)">
+          <h3 style="font-weight:800;margin-bottom:1.25rem;letter-spacing:-.02em">Enviar Solicitud</h3>
+          <form id="pqrsForm" novalidate>
+            <div class="form-group">
+              <label>Tipo de Solicitud</label>
+              <div class="tipo-grid">
+                <button type="button" class="tipo-btn selected" data-tipo="Petición" onclick="selectTipo(this)">📝 Petición</button>
+                <button type="button" class="tipo-btn" data-tipo="Queja" onclick="selectTipo(this)">😤 Queja</button>
+                <button type="button" class="tipo-btn" data-tipo="Reclamo" onclick="selectTipo(this)">⚠️ Reclamo</button>
+                <button type="button" class="tipo-btn" data-tipo="Sugerencia" onclick="selectTipo(this)">💡 Sugerencia</button>
+              </div>
+            </div>
+            <div id="guestFields" style="display:none">
+              <div class="form-row">
+                <div class="form-group"><label>Tu Nombre</label><input type="text" id="guestName" placeholder="Nombre completo"></div>
+                <div class="form-group"><label>Tu Correo</label><input type="email" id="guestEmail" placeholder="correo@ejemplo.com"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="pqrsAsunto">Asunto *</label>
+              <input type="text" id="pqrsAsunto" placeholder="Resumen breve de tu solicitud" required>
+              <span class="field-error" id="pqrsAsuntoErr"></span>
+            </div>
+            <div class="form-group">
+              <label for="pqrsDesc">Descripción Detallada *</label>
+              <textarea id="pqrsDesc" rows="5" placeholder="Describe tu solicitud con el mayor detalle posible. Incluye fechas, números de lote u otros datos relevantes..." required></textarea>
+              <span class="field-error" id="pqrsDescErr"></span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Enviar Solicitud →</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- SEGUIMIENTO -->
+      <div>
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--gray-mid);padding:1.75rem;box-shadow:var(--sh-sm)">
+          <h3 style="font-weight:800;margin-bottom:1.25rem;letter-spacing:-.02em">Mis Solicitudes</h3>
+          <div id="sinSesion" style="display:none">
+            <div class="empty-state" style="padding:2rem 0">
+              <div class="empty-icon">🔐</div>
+              <h4>Inicia sesión para ver tus solicitudes</h4>
+              <p style="margin-bottom:1rem">Con una cuenta puedes dar seguimiento a todas tus PQRS.</p>
+              <a href="login.html" class="btn btn-primary btn-sm">Iniciar Sesión</a>
+            </div>
+          </div>
+          <div id="tablaPqrs" class="tbl-wrap">
+            <table class="tbl">
+              <thead><tr><th>ID</th><th>Tipo</th><th>Asunto</th><th>Estado</th><th>Fecha</th></tr></thead>
+              <tbody id="pqrsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand"><a href="index.html" class="nav-logo" style="color:#fff"><span class="logo-dot">◈</span> TerraVerde</a></div>
+    <div class="footer-col"><h4>Navegación</h4><a href="index.html">Inicio</a><a href="lotes.html">Lotes</a><a href="proyecto.html">Proyecto</a></div>
+    <div class="footer-col"><h4>Contacto</h4><p>📧 info@terraverde.co</p><p>📞 +57 300 123 4567</p></div>
+  </div>
+  <div class="footer-bottom">© 2024 TerraVerde. Todos los derechos reservados.</div>
+</footer>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+const session = Auth.getSession();
+
+function selectTipo(btn) {
+  document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function renderMisPqrs() {
+  const body = document.getElementById('pqrsBody');
+  if (!session) {
+    document.getElementById('sinSesion').style.display = 'block';
+    document.getElementById('tablaPqrs').style.display = 'none';
+    return;
+  }
+  const lista = PQRS.getByCliente(session.id);
+  if (!lista.length) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin solicitudes enviadas</td></tr>';
+    return;
+  }
+  body.innerHTML = lista.map(p => `
+    <tr>
+      <td>#${p.id}</td>
+      <td><span class="badge badge-blue">${p.tipo}</span></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.asunto}</td>
+      <td><span class="badge badge-${p.estado==='pendiente'?'yellow':p.estado==='en proceso'?'blue':p.estado==='resuelto'?'green':'gray'}">${p.estado}</span></td>
+      <td>${Fmt.date(p.fecha)}</td>
+    </tr>`).join('');
+}
+
+// Si no hay sesión, mostrar campos de invitado
+if (!session) {
+  document.getElementById('guestFields').style.display = 'block';
+}
+
+document.getElementById('pqrsForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const tipo   = document.querySelector('.tipo-btn.selected')?.dataset.tipo || 'Petición';
+  const asunto = document.getElementById('pqrsAsunto').value.trim();
+  const desc   = document.getElementById('pqrsDesc').value.trim();
+  let ok = true;
+  if (!asunto) { Validate.setError('pqrsAsuntoErr', 'El asunto es obligatorio'); ok = false; }
+  else Validate.clearError('pqrsAsuntoErr');
+  if (!desc)   { Validate.setError('pqrsDescErr',   'La descripción es obligatoria'); ok = false; }
+  else Validate.clearError('pqrsDescErr');
+  if (!ok) return;
+
+  let clienteId     = session?.id || null;
+  let clienteNombre = session?.name || document.getElementById('guestName')?.value.trim() || 'Anónimo';
+
+  const all = PQRS.getAll();
+  const nueva = { id: Date.now(), clienteId, clienteNombre, tipo, asunto, descripcion: desc, estado: 'pendiente', fecha: new Date().toISOString(), respuesta: '' };
+  all.push(nueva);
+  PQRS.save(all);
+
+  Toast.show(`Solicitud enviada. Número de caso: #${nueva.id}`, 'success');
+  this.reset();
+  document.querySelector('.tipo-btn.selected')?.classList.remove('selected');
+  document.querySelector('.tipo-btn')?.classList.add('selected');
+  renderMisPqrs();
+});
+
+renderMisPqrs();
+</script>
+</body>
+</html>

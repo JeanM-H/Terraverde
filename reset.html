@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Restablecer Contraseña — TerraVerde</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="form-container">
+    <h2>Restablecer Contraseña</h2>
+    <form id="resetForm">
+      <input type="password" id="newPassword" placeholder="Nueva contraseña" required>
+      <div id="pwStrengthBar" class="pw-strength"></div>
+      <input type="password" id="confirmPassword" placeholder="Confirmar contraseña" required>
+      <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+    </form>
+    <a href="login.html">Volver al inicio de sesión</a>
+  </div>
+  <div id="toastContainer" class="toast-container"></div>
+  <script src="js/app.js"></script>
+  <script>
+    // Medidor de fortaleza de contraseña
+    document.getElementById('newPassword').addEventListener('input', function() {
+      const pw = this.value;
+      let strength = 0;
+      if (pw.length >= 8) strength++;
+      if (/[A-Z]/.test(pw)) strength++;
+      if (/[0-9]/.test(pw)) strength++;
+      if (/[^A-Za-z0-9]/.test(pw)) strength++;
+      const bar = document.getElementById('pwStrengthBar');
+      bar.style.width = (strength * 25) + '%';
+      bar.style.background = ['#f87171','#fbbf24','#4ade80','#2563eb'][strength-1] || '#e5e7eb';
+    });
+
+    // Obtener token de la URL
+    function getToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('token');
+    }
+
+    document.getElementById('resetForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const token = getToken();
+      const newPassword = document.getElementById('newPassword').value;
+
+      try {
+        const res = await fetch('/api/auth/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          Toast.show('Contraseña actualizada. Inicia sesión.', 'success');
+          setTimeout(() => window.location.href = 'login.html', 2000);
+        } else {
+          Toast.show(data.error || 'No se pudo cambiar la contraseña', 'error');
+        }
+      } catch {
+        Toast.show('No se pudo conectar al servidor', 'error');
+      }
+    });
+  </script>
+</body>
+</html>

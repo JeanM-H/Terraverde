@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — TerraVerde</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="dash-page">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <a href="index.html" class="nav-logo"><span class="logo-dot">◈</span> TerraVerde</a>
+    <button class="sb-close" onclick="toggleSidebar()" aria-label="Cerrar">✕</button>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav"></nav>
+  <div class="sidebar-foot">
+    <div class="sb-user">
+      <div class="sb-avatar" id="sbAvatar">?</div>
+      <div>
+        <div class="sb-user-name" id="sbName">Cargando...</div>
+        <div class="sb-user-role" id="sbRole"></div>
+      </div>
+    </div>
+    <button class="sb-logout" onclick="Auth.logout()">⎋ Cerrar Sesión</button>
+  </div>
+</aside>
+<div class="sb-overlay" id="sbOverlay" onclick="toggleSidebar()"></div>
+
+<!-- MAIN -->
+<main class="dash-main" id="dashMain">
+  <header class="dash-topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+    <span class="topbar-user" id="topbarUser"></span>
+  </header>
+  <div class="dash-body" id="dashBody"><div class="page-loader">Cargando...</div></div>
+</main>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="if(event.target===this)Modal.close()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="js/app.js"></script>
+<script>
+/* ============================================================
+   DASHBOARD CONTROLLER
+   ============================================================ */
+
+
+const IS_ADMIN = session && session.role === 'admin';
+let CURRENT_PAGE = 'home';
+
+const MENUS = {
+  admin: [
+    { group: 'Principal' },
+    { id: 'home',      icon: '⊞', label: 'Resumen General' },
+    { group: 'Gestión' },
+    { id: 'usuarios',  icon: '👥', label: 'Usuarios' },
+    { id: 'lotes',     icon: '🗺️', label: 'Lotes' },
+    { id: 'pagos',     icon: '💰', label: 'Pagos' },
+    { id: 'pqrs',      icon: '📋', label: 'PQRS' },
+    { group: 'Cuenta' },
+    { id: 'perfil',    icon: '👤', label: 'Mi Perfil' },
+  ],
+  cliente: [
+    { group: 'Principal' },
+    { id: 'home',        icon: '⊞', label: 'Mi Panel' },
+    { group: 'Mis Datos' },
+    { id: 'mis-lotes',   icon: '🗺️', label: 'Mis Lotes' },
+    { id: 'estado',      icon: '💰', label: 'Estado de Cuenta' },
+    { id: 'historial',   icon: '📄', label: 'Historial Pagos' },
+    { id: 'pqrs',        icon: '📋', label: 'PQRS' },
+    { group: 'Cuenta' },
+    { id: 'perfil',      icon: '👤', label: 'Mi Perfil' },
+  ],
+};
+
+const PAGE_TITLES = {
+  home: IS_ADMIN ? 'Resumen General' : 'Mi Panel',
+  usuarios: 'Gestión de Usuarios', lotes: 'Gestión de Lotes',
+  pagos: 'Gestión de Pagos', pqrs: IS_ADMIN ? 'Gestión PQRS' : 'Mis PQRS',
+  perfil: 'Mi Perfil', 'mis-lotes': 'Mis Lotes',
+  estado: 'Estado de Cuenta', historial: 'Historial de Pagos',
+};
+
+/* ----- BUILD SIDEBAR ----- */
+function buildSidebar() {
+  const menu = IS_ADMIN ? MENUS.admin : MENUS.cliente;
+  const nav  = document.getElementById('sidebarNav');
+  nav.innerHTML = menu.map(m => {
+    if (m.group) return `<div class="sb-group">${m.group}</div>`;
+    return `<a href="#" class="sb-link ${m.id === 'home' ? 'active' : ''}" data-page="${m.id}" onclick="navigate(event,'${m.id}')">
+      <span class="sb-icon">${m.icon}</span><span>${m.label}</span></a>`;
+  }).join('');
+  document.getElementById('sbAvatar').textContent = Fmt.initials(session.nombre || 'Usuario');
+  document.getElementById('sbName').textContent   = session.nombre || 'Usuario';
+  document.getElementById('sbRole').textContent   = IS_ADMIN ? 'Administrador' : 'Cliente';
+  document.getElementById('topbarUser').textContent = session.nombre || 'Usuario';
+}
+
+function navigate(e, pageId) {
+  e.preventDefault();
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('active'));
+  document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+  CURRENT_PAGE = pageId;
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[pageId] || pageId;
+  loadPage(pageId);
+  if (window.innerWidth < 768) toggleSidebar();
+}
+
+async function loadPage(id) {
+  const body = document.getElementById('dashBody');
+  body.innerHTML = '<div class="page-loader">Cargando...</div>';
+  setTimeout(async () => {
+    body.innerHTML = PAGES[id] ? await PAGES[id]() : '<div class="empty-state"><div class="empty-icon">🚧</div><h4>En construcción</h4></div>';
+  }, 120);
+}
+
+/* ============================================================
+   PÁGINAS
+   ============================================================ */
+const PAGES = {
+
+  /* ---- ADMIN HOME ---- */
+  home: async () => {
+  if (IS_ADMIN) {
+    const lotes  = await Lotes.getAll();
+    const pagos  = await Pagos.getAll();
+    const users  = Users.getClientes(); // Si Users es síncrono, déjalo así
+    const pqrs   = await PQRS.getAll();
+    const total  = pagos.reduce((s, p) => s + Number(String(p.monto || '0').replace(/\./g, '').replace(',', '.')), 0);
+    const pend   = pqrs.filter(p => p.estado === 'pendiente').length;
+    return `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-icon" style="background:#dbeafe">👥</div><div><div class="kpi-num">${users.length}</div><div class="kpi-label">Clientes</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#dcfce7">🗺️</div><div><div class="kpi-num">${lotes.filter(l=>l.estado==='disponible').length}</div><div class="kpi-label">Lotes Disponibles</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#fef9c3">💰</div><div><div class="kpi-num">${Fmt.money(total)}</div><div class="kpi-label">Total Recaudado</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#fee2e2">📋</div><div><div class="kpi-num">${pend}</div><div class="kpi-label">PQRS Pendientes</div></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Distribución de Lotes</h3></div>
+      <div class="panel-body">
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          ${['disponible','reservado','vendido'].map(e => {
+            const n = lotes.filter(l=>l.estado===e).length;
+            const pct = lotes.length ? Math.round(n/lotes.length*100) : 0;
+            const colors = {disponible:'var(--green)',reservado:'var(--yellow)',vendido:'var(--red)'};
+            return `<div style="flex:1;min-width:160px;background:var(--gray-light);border-radius:var(--r-sm);padding:1rem;text-align:center">
+              <div style="font-size:1.5rem;font-weight:800;color:${colors[e]}">${n}</div>
+              <div style="font-size:.78rem;text-transform:capitalize;color:var(--gray-text);font-weight:600">${e}</div>
+              <div style="margin-top:.5rem;height:6px;background:var(--gray-mid);border-radius:3px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:${colors[e]};border-radius:3px"></div></div>
+              <div style="font-size:.72rem;color:var(--gray-text);margin-top:.25rem">${pct}%</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Últimos Pagos</h3></div>
+      <div class="panel-body-np">
+        <div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Cliente</th><th>Lote</th><th>Cuota</th><th>Monto</th><th>Fecha</th></tr></thead>
+          <tbody>${pagos.slice(-6).reverse().map(p=>`
+            <tr><td>${p.clienteNombre}</td><td>#${p.loteId}</td><td>Cuota ${p.nCuota}</td>
+            <td><strong>${Fmt.money(p.monto)}</strong></td><td>${Fmt.date(p.fecha)}</td></tr>`).join('') || '<tr><td colspan="5" class="text-center" style="padding:2rem;color:var(--gray-text)">Sin pagos</td></tr>'}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+  }
+
+  /* ---- CLIENTE HOME ---- */
+  const misLotes = await Lotes.getByCliente(session.id);
+  const misPagos = await Pagos.getByCliente(session.id);
+
+  // Calcula totales (considerando planes a crédito)
+  const lotesConResumen = misLotes.map(l => {
+    const esCredito = l.pago_tipo === 'credito';
+    const valorRef = esCredito && l.credito_total ? Number(l.credito_total) : Number(l.valor || 0);
+    const pagadoRef = esCredito
+      ? Number(l.credito_pagado || 0)
+      : misPagos.filter(p => p.loteId === l.id).reduce((s, p) => s + Number(p.monto || 0), 0);
+    const saldoLote = Math.max(0, valorRef - pagadoRef);
+    return { ...l, valorRef, pagadoRef, saldoLote };
+  });
+
+  const totalVal = lotesConResumen.reduce((s, l) => s + l.valorRef, 0);
+  const totalPag = lotesConResumen.reduce((s, l) => s + l.pagadoRef, 0);
+  const saldo    = Math.max(0, totalVal - totalPag);
+  const pct      = totalVal > 0 ? Math.min(100, Math.round(totalPag / totalVal * 100)) : 0;
+  return `
+  <div class="welcome-banner">
+    <div class="wb-av">${Fmt.initials(session.nombre || 'Usuario')}</div>
+    <div><h2>Hola, ${(session.nombre ? session.nombre.split(' ')[0] : 'Usuario')} 👋</h2><p>Bienvenido a tu panel de gestión de lotes.</p></div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-icon" style="background:#dbeafe">🗺️</div><div><div class="kpi-num">${misLotes.length}</div><div class="kpi-label">Mis Lotes</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="background:#dcfce7">✅</div><div><div class="kpi-num">${Fmt.money(totalPag)}</div><div class="kpi-label">Total Pagado</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="background:#fee2e2">⏳</div><div><div class="kpi-num">${Fmt.money(saldo)}</div><div class="kpi-label">Saldo Pendiente</div></div></div>
+    <div class="kpi-card"><div class="kpi-icon" style="background:#fef9c3">📋</div><div><div class="kpi-num">${misPagos.length}</div><div class="kpi-label">Pagos Realizados</div></div></div>
+  </div>
+  ${totalVal > 0 ? `<div class="panel"><div class="panel-head"><h3>Progreso General de Pago</h3></div>
+    <div class="panel-body"><div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+      <span class="prog-label">${pct}% pagado</span>
+    </div></div></div>` : ''}
+  <div class="panel"><div class="panel-head"><h3>Mis Lotes</h3><a href="#" onclick="navigate(event,'mis-lotes')" class="btn btn-ghost btn-sm">Ver todos</a></div>
+    <div class="panel-body">
+      ${misLotes.length ? `<div class="lotes-mini-grid">${misLotes.map(l=>`
+        <div class="lote-mini">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.35rem">
+            <h4>Lote #${l.id}</h4><span class="badge badge-${l.estado==='disponible'?'green':l.estado==='reservado'?'yellow':'red'}">${l.estado}</span>
+          </div>
+          <p>📐 ${l.area} m²</p><p>📍 ${l.ubicacion}</p>
+          <p>💵 ${Fmt.money(l.valor)}${l.pago_tipo==='credito' ? ` <span style="font-size:.8rem;color:var(--gray-text)">(crédito)</span>` : ''}${l.pago_tipo==='credito' ? ` <span style="font-size:.8rem;color:var(--gray-text)">(crédito)</span>` : ''}</p><p>🏗️ ${l.etapa}</p>
+        </div>`).join('')}</div>` :
+        `<div class="empty-state"><div class="empty-icon">🗺️</div><h4>Sin lotes asignados</h4><p><a href="lotes.html" class="link-primary">Explorar lotes disponibles →</a></p></div>`}
+    </div>
+  </div>`;
+},
+
+  /* ---- USUARIOS ADMIN ---- */
+  usuarios: () => {
+    const users = Users.getAll();
+    return `
+    <div class="panel">
+      <div class="panel-head"><h3>Usuarios Registrados (${users.length})</h3></div>
+      <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Rol</th><th>Registro</th><th>Estado</th></tr></thead>
+        <tbody>${users.map(u=>`
+          <tr><td>#${u.id}</td><td><strong>${u.name}</strong></td><td>${u.email}</td><td>${u.phone||'—'}</td>
+          <td><span class="badge badge-${u.role==='admin'?'blue':'green'}">${u.role}</span></td>
+          <td>${Fmt.date(u.createdAt)}</td>
+          <td><span class="badge badge-green">Activo</span></td></tr>`).join('') ||
+          '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin usuarios</td></tr>'}
+        </tbody>
+      </table></div></div>
+    </div>`;
+  },
+
+  /* ---- LOTES ADMIN ---- */
+  lotes: async () => {
+    const lotes = await Lotes.getAll();
+    return `
+    <div class="panel">
+      <div class="panel-head"><h3>Lotes del Proyecto (${lotes.length})</h3>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalLote()">+ Agregar Lote</button></div>
+      <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>ID</th><th>Área</th><th>Ubicación</th><th>Valor</th><th>Etapa</th><th>Estado</th><th>Cliente</th><th>Acciones</th></tr></thead>
+        <tbody>${lotes.map(l=>{
+          const cli = l.clienteId ? (Users.getById(l.clienteId)||{}).name||'?' : '—';
+          return `<tr>
+            <td>#${l.id}</td><td>${l.area} m²</td><td>${l.ubicacion}</td>
+            <td>${Fmt.money(l.valor)}</td><td>${l.etapa}</td>
+            <td><span class="badge badge-${l.estado==='disponible'?'green':l.estado==='reservado'?'yellow':'red'}">${l.estado}</span></td>
+            <td>${cli}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="abrirModalLote(${l.id})">Editar</button></td></tr>`;
+        }).join('') || '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin lotes</td></tr>'}
+        </tbody>
+      </table></div></div>
+    </div>`;
+  },
+
+  /* ---- PAGOS ADMIN ---- */
+  pagos: async () => {
+    const pagos = await Pagos.getAll();
+    const total = pagos.reduce((s, p) => s + Number(String(p.monto || '0').replace(/\./g, '').replace(',', '.')), 0);
+    return `
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-icon" style="background:#dcfce7">💵</div><div><div class="kpi-num">${Fmt.money(total)}</div><div class="kpi-label">Total Recaudado</div></div></div>
+      <div class="kpi-card"><div class="kpi-icon" style="background:#dbeafe">📑</div><div><div class="kpi-num">${pagos.length}</div><div class="kpi-label">Pagos Registrados</div></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Todos los Pagos</h3></div>
+      <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>ID</th><th>Cliente</th><th>Lote</th><th>N° Cuota</th><th>Monto</th><th>Fecha</th><th>Nota</th><th>Comprobante</th></tr></thead>
+        <tbody>${pagos.map(p=>`
+          <tr><td>#${p.id}</td><td>${p.clienteNombre}</td><td>#${p.loteId}</td><td>Cuota ${p.nCuota}</td>
+          <td><strong>${Fmt.money(p.monto)}</strong></td><td>${Fmt.date(p.fecha)}</td>
+          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nota||'—'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="verComprobante(${p.id})">Ver</button></td></tr>`).join('') ||
+          '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin pagos</td></tr>'}
+        </tbody>
+      </table></div></div>
+    </div>`;
+  },
+
+  /* ---- PQRS (AMBOS ROLES) ---- */
+  pqrs: async () => {
+  const allPqrs = await PQRS.getAll();
+  const lista   = IS_ADMIN ? allPqrs : allPqrs.filter(p=>p.clienteId===session.id);
+  const formHtml = !IS_ADMIN ? `
+    <div class="panel" style="margin-bottom:1.5rem">
+      <div class="panel-head"><h3>Nueva Solicitud PQRS</h3></div>
+      <div class="panel-body">
+        <form id="pqrsForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Tipo de Solicitud</label>
+              <div class="tipo-grid">
+                <button type="button" class="tipo-btn selected" data-tipo="Petición" onclick="selectTipo(this)">📝 Petición</button>
+                <button type="button" class="tipo-btn" data-tipo="Queja" onclick="selectTipo(this)">😤 Queja</button>
+                <button type="button" class="tipo-btn" data-tipo="Reclamo" onclick="selectTipo(this)">⚠️ Reclamo</button>
+                <button type="button" class="tipo-btn" data-tipo="Sugerencia" onclick="selectTipo(this)">💡 Sugerencia</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="pqrsAsunto">Asunto</label>
+              <input type="text" id="pqrsAsunto" placeholder="Resumen breve de tu solicitud">
+              <span class="field-error" id="pqrsAsuntoErr"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="pqrsDesc">Descripción Detallada *</label>
+            <textarea id="pqrsDesc" rows="4" placeholder="Describe tu solicitud con el mayor detalle posible..."></textarea>
+            <span class="field-error" id="pqrsDescErr"></span>
+          </div>
+          <button type="submit" class="btn btn-primary">Enviar Solicitud →</button>
+        </form>
+      </div>
+    </div>` : '';
+
+    return formHtml + `
+    <div class="panel">
+      <div class="panel-head"><h3>${IS_ADMIN ? 'Todas las Solicitudes' : 'Mis Solicitudes'} (${lista.length})</h3></div>
+      <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>ID</th><th>Tipo</th>${IS_ADMIN?'<th>Cliente</th>':''}<th>Asunto</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+        <tbody id="pqrsTabla">${await renderPqrsRows(lista)}</tbody>
+      </table></div></div>
+    </div>`;
+  },
+
+  /* ---- MIS LOTES CLIENTE ---- */
+  'mis-lotes': async () => {
+    const lotes = await Lotes.getByCliente(session.id);
+    return `
+    <div class="panel">
+      <div class="panel-head"><h3>Mis Lotes Adquiridos (${lotes.length})</h3>
+        <a href="lotes.html" class="btn btn-ghost btn-sm">+ Ver disponibles</a></div>
+      <div class="panel-body">
+        ${lotes.length ? `<div class="lotes-mini-grid">${lotes.map(l=>{
+            const credit = l.pago_tipo === 'credito' ? {
+              meses: l.credito_meses,
+              tasa: l.credito_tasa,
+              mensual: l.credito_mensual,
+              restante: l.credito_total ? Number(l.credito_total) - Number(l.credito_pagado || 0) : null
+            } : null;
+            const creditInfo = credit ? `
+              <p style="margin-top:.5rem;font-size:.85rem;color:var(--gray-text)"><strong>Crédito:</strong> ${credit.meses} meses (tasa ${Math.round(credit.tasa*100)}%) — Pago mensual: ${Fmt.money(credit.mensual)} (resta ${Fmt.money(credit.restante)})</p>` : '';
+            return `
+          <div class="lote-mini">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+              <h4>Lote #${l.id}</h4>
+              <span class="badge badge-${l.estado==='disponible'?'green':l.estado==='reservado'?'yellow':'red'}">${l.estado}</span>
+            </div>
+            <p>📐 ${l.area} m²</p><p>📍 ${l.ubicacion}</p>
+            <p>💵 ${Fmt.money(l.valor)}</p><p>🏗️ Etapa: ${l.etapa}</p>
+            ${creditInfo}
+            <div style="margin-top:.75rem"><button class="btn btn-ghost btn-sm btn-full" onclick="navigate(event,'historial')">Ver pagos</button></div>
+          </div>`;
+          }).join('')}</div>` :
+          `<div class="empty-state"><div class="empty-icon">🗺️</div><h4>No tienes lotes asignados</h4><p><a href="lotes.html" class="link-primary">Explorar lotes disponibles →</a></p></div>`}
+      </div>
+    </div>`;
+  },
+
+  /* ---- ESTADO DE CUENTA CLIENTE ---- */
+  estado: async () => {
+    try {
+      // Usa el endpoint de saldo del backend que calcula automáticamente con créditos
+      const saldoData = await API.get(`/api/clientes/${session.id}/saldo`);
+      
+      if (!saldoData || saldoData.error) {
+        return '<div class="panel"><div class="panel-body"><div class="empty-state"><div class="empty-icon">⚠️</div><h4>Error al cargar estado</h4><p>Por favor, recarga la página</p></div></div></div>';
+      }
+
+      const { totalValor, totalPagado, saldo, items } = saldoData;
+      const pct = totalValor > 0 ? Math.min(100, Math.round(totalPagado / totalValor * 100)) : 0;
+
+      return `
+      <div class="cuenta-grid">
+        <div class="cuenta-card"><div class="cc-label">Valor Total Lotes</div><div class="cc-value">${Fmt.money(totalValor)}</div><div class="cc-sub">${items.length} lote(s)</div></div>
+        <div class="cuenta-card c-green"><div class="cc-label">Total Pagado</div><div class="cc-value" style="color:var(--green)">${Fmt.money(totalPagado)}</div></div>
+        <div class="cuenta-card c-red"><div class="cc-label">Saldo Pendiente</div><div class="cc-value" style="color:var(--red)">${Fmt.money(saldo)}</div><div class="cc-sub">Por financiar</div></div>
+        <div class="cuenta-card c-yellow"><div class="cc-label">% Pagado</div><div class="cc-value" style="color:var(--yellow)">${pct}%</div><div class="cc-sub">Progreso total</div></div>
+      </div>
+      ${totalValor > 0 ? `<div class="panel"><div class="panel-head"><h3>Progreso de Financiamiento</h3></div>
+        <div class="panel-body"><div class="prog-wrap">
+          <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+          <span class="prog-label">${pct}% pagado</span>
+        </div>
+        <p style="color:var(--gray-text);font-size:.85rem;margin-top:.75rem">
+          Has pagado ${Fmt.money(totalPagado)} de ${Fmt.money(totalValor)}. Te faltan ${Fmt.money(saldo)}.
+        </p>
+        ${saldo > 0 ? `<div style="margin-top:1.25rem">
+          <button class="btn btn-primary" onclick="abrirModalPago()">+ Registrar Nuevo Pago</button>
+        </div>` : `<div style="margin-top:1.25rem;color:var(--gray-text)">¡Excelente! Has pagado tu saldo completo.</div>`}
+        </div></div>` : `<div class="panel"><div class="panel-body"><div class="empty-state">
+          <div class="empty-icon">🗺️</div><h4>Sin lotes asignados</h4>
+          <p><a href="lotes.html" class="link-primary">Explorar lotes disponibles</a></p></div></div></div>`}
+      <div class="panel"><div class="panel-head"><h3>Detalle por Lote</h3></div>
+        <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+          <thead><tr><th>Lote</th><th>Valor Total</th><th>Pagado</th><th>Saldo</th><th>Estado</th></tr></thead>
+          <tbody>${items.map(item=>`
+            <tr>
+              <td>#${item.loteId} — ${item.ubicacion}</td>
+              <td>${Fmt.money(item.valorTotal)}</td>
+              <td style="color:var(--green)">${Fmt.money(item.totalPagado)}</td>
+              <td style="color:var(--red)">${Fmt.money(item.saldo)}</td>
+              <td><span class="badge badge-${item.estado==='disponible'?'green':item.estado==='reservado'?'yellow':'red'}">${item.estado}</span></td>
+            </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin lotes</td></tr>'}
+          </tbody>
+        </table></div></div>
+      </div>`;
+    } catch (error) {
+      console.error('Error cargando estado de cuenta:', error);
+      return '<div class="panel"><div class="panel-body"><div class="empty-state"><div class="empty-icon">❌</div><h4>Error</h4><p>' + error.message + '</p></div></div></div>';
+    }
+  },
+
+  /* ---- HISTORIAL PAGOS CLIENTE ---- */
+  historial: async () => {
+  const pagos = await Pagos.getByCliente(session.id);
+  // Limpia puntos antes de convertir a número
+  const total = pagos.reduce((s, p) => s + Number(String(p.monto || '0').replace(/\./g, '')), 0);
+  return `
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Historial de Pagos <span class="badge badge-green" style="margin-left:.5rem">${Fmt.money(total)}</span></h3>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalPago()">+ Registrar Pago</button>
+      </div>
+      <div class="panel-body-np"><div class="tbl-wrap"><table class="tbl">
+        <thead><tr><th>#</th><th>Lote</th><th>N° Cuota</th><th>Monto</th><th>Fecha</th><th>Nota</th><th>Comprobante</th></tr></thead>
+        <tbody>${pagos.map((p,i)=>`
+          <tr><td>${i+1}</td><td>#${p.loteId}</td><td>Cuota ${p.nCuota}</td>
+          <td><strong>${Fmt.money(p.monto)}</strong></td><td>${Fmt.date(p.fecha)}</td>
+          <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.nota||'—'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="verComprobante(${p.id})">🖨 Ver</button></td></tr>`).join('') ||
+          '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin pagos registrados. <a href="#" onclick="abrirModalPago()" class="link-primary">Registrar primer pago</a></td></tr>'}
+        </tbody>
+      </table></div></div>
+    </div>`;
+  },
+
+  /* ---- PERFIL ---- */
+  perfil: () => {
+    return `
+    <div class="perfil-grid">
+      <div class="perfil-card">
+        <div class="perfil-avatar">${Fmt.initials(session.nombre || 'Usuario')}</div>
+        <h3>${session.nombre || 'Usuario'}</h3>
+        <p>${session.email || ''}</p>
+        <p style="margin-top:.25rem"><span class="badge badge-${session.role==='admin'?'blue':'green'}">${session.role}</span></p>
+        <p style="margin-top:.75rem;font-size:.8rem;color:var(--gray-text)">Miembro desde ${Fmt.date(session.createdAt)}</p>
+      </div>
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Editar Información</h3></div>
+          <div class="panel-body">
+            <form id="perfilForm">
+              <div class="form-row">
+                <div class="form-group"><label>Nombre Completo</label>
+                  <input type="text" id="pName" value="${session.nombre}">
+                  <span class="field-error" id="pNameErr"></span></div>
+                <div class="form-group"><label>Teléfono</label>
+                  <input type="tel" id="pPhone" value="${session.phone||''}">
+                  <span class="field-error" id="pPhoneErr"></span></div>
+              </div>
+              <div class="form-group"><label>Correo Electrónico</label>
+                <input type="email" id="pEmail" value="${session.email}" readonly style="background:var(--gray-light);cursor:not-allowed">
+                <small style="color:var(--gray-text);font-size:.75rem">El correo no se puede modificar directamente.</small></div>
+              <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+            </form>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h3>Cambiar Contraseña</h3></div>
+          <div class="panel-body">
+            <form id="cambiarPasswordForm">
+              <div class="form-group"><label>Contraseña Actual</label>
+                <div class="input-wrap"><input type="password" id="actualPw" placeholder="••••••••">
+                <button type="button" class="input-icon" onclick="togglePw('actualPw')">👁</button></div>
+                <span class="field-error" id="pwActualErr"></span></div>
+              <div class="form-group"><label>Nueva Contraseña</label>
+                <div class="input-wrap"><input type="password" id="nuevaPw" placeholder="Mínimo 6 caracteres">
+                <button type="button" class="input-icon" onclick="togglePw('nuevaPw')">👁</button></div>
+                <div class="pw-strength"><div class="pw-bar" id="pwNuevaBar"></div></div>
+                <span class="field-error" id="pwNuevaErr"></span></div>
+              <div class="form-group"><label>Confirmar Nueva Contraseña</label>
+                <div class="input-wrap"><input type="password" id="pwConfirm" placeholder="••••••••">
+                <button type="button" class="input-icon" onclick="togglePw('pwConfirm')">👁</button></div>
+                <span class="field-error" id="pwConfirmErr"></span></div>
+              <button type="submit" class="btn btn-primary">Actualizar Contraseña</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  },
+};
+
+/* ============================================================
+   HANDLERS DE FORMULARIOS Y MODALES
+   ============================================================ */
+
+// PQRS helpers
+async function renderPqrsRows(lista) {
+  if (!lista.length) return `<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--gray-text)">Sin solicitudes</td></tr>`;
+  return lista.map(p => `
+    <tr>
+      <td>#${p.id}</td>
+      <td><span class="badge badge-blue">${p.tipo}</span></td>
+      ${IS_ADMIN ? `<td>${p.clienteNombre}</td>` : ''}
+      <td>${p.asunto||p.descripcion.substring(0,40)+'...'}</td>
+      <td><span class="badge badge-${p.estado==='pendiente'?'yellow':p.estado==='en proceso'?'blue':p.estado==='resuelto'?'green':'red'}">${p.estado}</span></td>
+      <td>${Fmt.date(p.fecha)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="verPqrs(${p.id})">Ver</button>
+        ${IS_ADMIN ? `<button class="btn btn-ghost btn-sm" onclick="avanzarPqrs(${p.id})" style="margin-left:.3rem">Avanzar</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function selectTipo(btn) {
+  document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// Enviado de PQRS
+document.addEventListener('submit', async function(e) {
+  if (e.target.id === 'pqrsForm') {
+    e.preventDefault();
+    const tipo  = document.querySelector('.tipo-btn.selected')?.dataset.tipo || 'Petición';
+    const asunto = document.getElementById('pqrsAsunto')?.value.trim() || '';
+    const desc  = document.getElementById('pqrsDesc')?.value.trim();
+    if (!desc) { Validate.setError('pqrsDescErr', 'La descripción es obligatoria'); return; }
+    Validate.clearError('pqrsDescErr');
+    await PQRS.save({ clienteId: session.id, clienteNombre: session.nombre || 'Usuario', tipo, asunto, descripcion: desc, estado: 'pendiente', fecha: new Date().toISOString(), respuesta: '' });
+    Toast.show('Solicitud enviada.', 'success');
+    loadPage('pqrs');
+  }
+
+  if (e.target.id === 'perfilForm') {
+    e.preventDefault();
+    const name  = document.getElementById('pName').value.trim();
+    const phone = document.getElementById('pPhone').value.trim();
+    if (!name) { Validate.setError('pNameErr', 'El nombre es obligatorio'); return; }
+    // Envía los cambios al backend
+    const resp = await fetch(`http://localhost:3000/api/usuarios/${session.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone })
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      Object.assign(session, { name, phone });
+      document.getElementById('sbAvatar').textContent = Fmt.initials(name);
+      document.getElementById('sbName').textContent   = name;
+      document.getElementById('topbarUser').textContent = name;
+      Toast.show('Perfil actualizado correctamente', 'success');
+    } else {
+      Toast.show('Error al guardar los cambios', 'error');
+    }
+  }
+
+  if (e.target.id === 'cambiarPasswordForm') {
+    e.preventDefault();
+    const actual = document.getElementById('actualPw').value;
+    const nueva = document.getElementById('nuevaPw').value;
+    const user = JSON.parse(localStorage.getItem('tv_session')); // O como obtengas el usuario actual
+
+    const res = await fetch('http://localhost:3000/api/usuarios/cambiar-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: user.id,
+        actual,
+        nueva
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      alert('Contraseña cambiada correctamente');
+    } else {
+      alert(data.error || 'Error al cambiar la contraseña');
+    }
+  }
+});
+
+document.getElementById('pwNueva')?.addEventListener?.('input', function() {
+  checkPwStrength(this.value, 'pwNuevaBar');
+});
+
+// VER PQRS
+async function verPqrs(id) {
+  const all = await PQRS.getAll();
+  const p = all.find(x => x.id === id);
+  if (!p) return;
+  Modal.open(`
+    <h3>${p.tipo} #${p.id}</h3>
+    <div style="display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap">
+      <span class="badge badge-${p.estado==='pendiente'?'yellow':p.estado==='en proceso'?'blue':'green'}">${p.estado}</span>
+      <span class="badge badge-blue">${p.tipo}</span>
+      <span style="font-size:.8rem;color:var(--gray-text)">${Fmt.datetime(p.fecha)}</span>
+    </div>
+    <div class="form-group"><label>Asunto</label><p style="font-size:.9rem">${p.asunto||'—'}</p></div>
+    <div class="form-group"><label>Descripción</label>
+      <div style="background:var(--gray-light);padding:1rem;border-radius:var(--r-sm);font-size:.9rem;line-height:1.65">${p.descripcion}</div></div>
+    ${p.respuesta ? `<div class="form-group"><label>Respuesta de TerraVerde</label>
+      <div style="background:var(--blue-light);padding:1rem;border-radius:var(--r-sm);font-size:.9rem;color:var(--blue);line-height:1.65">${p.respuesta}</div></div>` : ''}
+    ${IS_ADMIN ? `
+    <div class="form-group"><label>Responder / Actualizar</label>
+      <textarea id="pqrsRespuesta" rows="3" placeholder="Escribe una respuesta para el cliente...">${p.respuesta||''}</textarea></div>
+    <div style="display:flex;gap:.75rem">
+      <button class="btn btn-primary" onclick="responderPqrs(${p.id})">Guardar Respuesta</button>
+      <button class="btn btn-ghost" onclick="avanzarPqrs(${p.id})">Cambiar Estado</button>
+    </div>` : ''}
+  `);
+}
+
+async function responderPqrs(id) {
+  const resp = document.getElementById('pqrsRespuesta')?.value.trim();
+  if (!resp) { Toast.show('Escribe una respuesta primero', 'warning'); return; }
+  const all  = await PQRS.getAll();
+  const idx  = all.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  all[idx].respuesta = resp;
+  all[idx].estado    = 'en proceso';
+  await PQRS.save(all[idx]); // <-- usa el método save para actualizar en backend
+  Toast.show('Respuesta guardada', 'success');
+  Modal.close();
+  loadPage('pqrs');
+}
+
+async function avanzarPqrs(id) {
+  const all   = await PQRS.getAll();
+  const idx   = all.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const flujo = ['pendiente','en proceso','resuelto','cerrado'];
+  const ci    = flujo.indexOf(all[idx].estado);
+  all[idx].estado = flujo[Math.min(ci + 1, flujo.length - 1)];
+  await PQRS.save(all[idx]);
+  Toast.show(`Estado actualizado a: ${all[idx].estado}`, 'success');
+  Modal.close();
+  loadPage('pqrs');
+}
+
+// LOTES — modal crear/editar
+async function abrirModalLote(id) {
+  const lotes = await Lotes.getAll();
+  const lote = id ? lotes.find(l=>l.id===id) : null;
+  const clientes = Users.getClientes();
+  Modal.open(`
+    <h3>${lote ? 'Editar Lote #' + lote.id : 'Agregar Nuevo Lote'}</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Área (m²)</label>
+        <input type="number" id="lArea" min="100" max="200" value="${lote?.area||100}" placeholder="100 - 200">
+        <span class="field-error" id="lAreaErr"></span></div>
+      <div class="form-group"><label>Valor ($)</label>
+        <input type="number" id="lValor" value="${lote?.valor||''}" placeholder="45000000">
+        <span class="field-error" id="lValorErr"></span></div>
+    </div>
+    <div class="form-group"><label>Ubicación</label>
+      <input type="text" id="lUbic" value="${lote?.ubicacion||''}" placeholder="Sector A — Manzana 1, Lote N">
+      <span class="field-error" id="lUbicErr"></span></div>
+    <div class="form-row">
+      <div class="form-group"><label>Etapa</label>
+        <select id="lEtapa">
+          ${['Lanzamiento','Preventa','Construcción','Entrega'].map(e=>`<option ${lote?.etapa===e?'selected':''}>${e}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="lEstado">
+          ${['disponible','reservado','vendido'].map(e=>`<option value="${e}" ${lote?.estado===e?'selected':''}>${e}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="form-group"><label>Asignar Cliente (opcional)</label>
+      <select id="lCliente">
+        <option value="">— Sin asignar —</option>
+        ${clientes.map(c=>`<option value="${c.id}" ${lote?.clienteId===c.id?'selected':''}>${c.name} (${c.email})</option>`).join('')}
+      </select></div>
+    <button class="btn btn-primary btn-full" onclick="guardarLote(${id||'null'})">
+      ${lote ? 'Actualizar Lote' : 'Guardar Lote'}
+    </button>
+  `);
+}
+
+async function guardarLote(id) {
+  const area   = parseInt(document.getElementById('lArea').value);
+  const valor  = parseFloat(document.getElementById('lValor').value);
+  const ubic   = document.getElementById('lUbic').value.trim();
+  const etapa  = document.getElementById('lEtapa').value;
+  const estado = document.getElementById('lEstado').value;
+  const cliId  = document.getElementById('lCliente').value;
+  let ok = true;
+  if (!area || area < 100 || area > 200) { Validate.setError('lAreaErr','Entre 100 y 200 m²'); ok=false; }
+  if (!valor || valor <= 0)              { Validate.setError('lValorErr','Ingresa un valor válido'); ok=false; }
+  if (!ubic)                             { Validate.setError('lUbicErr','Ingresa la ubicación'); ok=false; }
+  if (!ok) return;
+
+  // Aquí usa el backend real:
+  let resp;
+  if (id) {
+    resp = await fetch(`http://localhost:3000/api/lotes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area, valor, ubicacion: ubic, etapa, estado, clienteId: cliId ? parseInt(cliId) : null })
+    });
+  } else {
+    resp = await fetch('http://localhost:3000/api/lotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area, valor, ubicacion: ubic, etapa, estado, clienteId: cliId ? parseInt(cliId) : null })
+    });
+  }
+  const data = await resp.json();
+  if (data.ok) {
+    Toast.show(id ? 'Lote actualizado' : 'Lote creado correctamente', 'success');
+    Modal.close();
+    loadPage('lotes');
+  } else {
+    Toast.show('Error al guardar el lote', 'error');
+  }
+}
+
+// PAGOS — modal registrar
+let pagoLotesCache = [];
+let pagoClienteCache = null;
+
+function formatMoney(n) {
+  return '$' + Number(n).toLocaleString('es-CO');
+}
+
+async function abrirModalPago() {
+  const misLotes = IS_ADMIN ? await Lotes.getAll() : await Lotes.getByCliente(session.id);
+  if (!misLotes.length) { Toast.show('No hay lotes disponibles para registrar pagos', 'error'); return; }
+
+  // Calcula saldo pendiente por lote y filtra los ya pagados
+  const pagos = await Pagos.getAll();
+  const pagosPorLote = pagos.reduce((acc, p) => {
+    const loteId = Number(p.loteId);
+    acc[loteId] = (acc[loteId] || 0) + Number(p.monto || 0);
+    return acc;
+  }, {});
+
+  const lotesConSaldo = misLotes.map(l => {
+    const totalPagado = pagosPorLote[l.id] || 0;
+    const esCredito = l.pago_tipo === 'credito';
+    const valorRef = esCredito && l.credito_total ? Number(l.credito_total) : Number(l.valor || 0);
+    const pagadoRef = esCredito ? Number(l.credito_pagado || 0) : totalPagado;
+    const saldo = Math.max(0, valorRef - pagadoRef);
+    const maxCuota = pagos.filter(p => Number(p.loteId) === l.id)
+                        .reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0);
+    return { ...l, totalPagado: totalPagado, saldo, nextCuota: maxCuota + 1 };
+  }).filter(l => l.saldo > 0);
+
+  if (!lotesConSaldo.length) {
+    Toast.show('No hay lotes con saldo pendiente para registrar pagos', 'info');
+    return;
+  }
+
+  pagoLotesCache = lotesConSaldo;
+  pagoClienteCache = null;
+
+  const clientes = IS_ADMIN ? Users.getClientes() : [session];
+
+  Modal.open(`
+    <h3>Registrar Nuevo Pago</h3>
+    ${IS_ADMIN ? `<div class="form-group"><label>Cliente</label>
+      <select id="pagoCliente" onchange="actualizarLotesPago()">
+        <option value="">Selecciona un cliente</option>
+        ${clientes.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}
+      </select></div>` : ''}
+    <div class="form-group"><label>Lote</label>
+      <select id="pagoLote" onchange="actualizarPagoInfo()">
+        ${lotesConSaldo.map(l=>`<option value="${l.id}">Lote #${l.id} — ${l.area}m² (${l.ubicacion})</option>`).join('')}
+      </select></div>
+    <div id="pagoInfo" style="margin:.5rem 0;color:var(--gray-text)"></div>
+    <div class="form-row">
+      <div class="form-group"><label>N° de Cuota</label>
+        <input type="number" id="pagoCuota" min="1" value="1" readonly></div>
+      <div class="form-group"><label>Monto ($)</label>
+        <input type="number" id="pagoMonto" placeholder="Ej: 6750000">
+        <span class="field-error" id="pagoMontoErr"></span>
+        <div class="field-note" id="pagoMontoNote" style="color:var(--gray-text);font-size:.85rem;margin-top:.25rem"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Fecha de Pago</label>
+      <input type="date" id="pagoFecha" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="form-group"><label>Nota (opcional)</label>
+      <input type="text" id="pagoNota" placeholder="Ej: Cuota inicial, transferencia bancaria..."></div>
+    <button id="pagoSubmit" class="btn btn-primary btn-full" onclick="guardarPago()">Registrar Pago</button>
+  `);
+
+  actualizarPagoInfo();
+}
+
+async function actualizarLotesPago() {
+  const cliId = parseInt(document.getElementById('pagoCliente')?.value);
+  if (!cliId) {
+    document.getElementById('pagoLote').innerHTML = '<option>— Selecciona un cliente primero —</option>';
+    return;
+  }
+
+  // Filtra lotes con saldo pendiente del cliente seleccionado
+  const lotes = await Lotes.getByCliente(cliId);
+  const pagos = await Pagos.getAll();
+  const pagosPorLote = pagos.reduce((acc, p) => {
+    const id = Number(p.loteId);
+    acc[id] = (acc[id] || 0) + Number(p.monto || 0);
+    return acc;
+  }, {});
+
+  const lotesConSaldo = lotes.map(l => {
+    const totalPagado = pagosPorLote[l.id] || 0;
+    const esCredito = l.pago_tipo === 'credito';
+    const valorRef = esCredito && l.credito_total ? Number(l.credito_total) : Number(l.valor || 0);
+    const pagadoRef = esCredito ? Number(l.credito_pagado || 0) : totalPagado;
+    const saldo = Math.max(0, valorRef - pagadoRef);
+    const maxCuota = pagos.filter(p => Number(p.loteId) === l.id)
+                        .reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0);
+    return { ...l, totalPagado: totalPagado, saldo, nextCuota: maxCuota + 1 };
+  }).filter(l => l.saldo > 0);
+
+  if (!lotesConSaldo.length) {
+    document.getElementById('pagoLote').innerHTML = '<option>No hay lotes con saldo pendiente</option>';
+    return;
+  }
+
+  pagoLotesCache = lotesConSaldo;
+  pagoClienteCache = cliId;
+
+  document.getElementById('pagoLote').innerHTML = lotesConSaldo.map(l=>
+    `<option value="${l.id}">Lote #${l.id} — ${l.area}m² (${l.ubicacion})</option>`
+  ).join('');
+
+  actualizarPagoInfo();
+}
+
+async function actualizarPagoInfo() {
+  const loteId = parseInt(document.getElementById('pagoLote')?.value);
+  const infoEl = document.getElementById('pagoInfo');
+  const cuotaEl = document.getElementById('pagoCuota');
+  const montoEl = document.getElementById('pagoMonto');
+  const submitBtn = document.getElementById('pagoSubmit');
+
+  if (!loteId) {
+    if (infoEl) infoEl.textContent = '';
+    if (cuotaEl) cuotaEl.value = 1;
+    if (montoEl) montoEl.value = '';
+    if (submitBtn) submitBtn.disabled = false;
+    return;
+  }
+
+  const lote = pagoLotesCache.find(l => l.id === loteId);
+  const pagos = await Pagos.getByLote(loteId);
+  const totalPagado = pagos.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const valorLote = Number(lote?.valor || 0);
+
+  const credito = lote && lote.pago_tipo === 'credito' ? {
+    meses: Number(lote.credito_meses || 0),
+    tasa: Number(lote.credito_tasa || 0),
+    mensual: Number(lote.credito_mensual || 0),
+    total: Number(lote.credito_total || valorLote),
+    pagado: Number(lote.credito_pagado || 0)
+  } : null;
+
+  const valorReferencia = credito ? credito.total : valorLote;
+  const pagadoReferencia = credito ? Math.max(credito.pagado, totalPagado) : totalPagado;
+  const restante = Math.max(0, valorReferencia - pagadoReferencia);
+  const proximaCuota = (pagos.reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0) || 0) + 1;
+
+  if (cuotaEl) {
+    cuotaEl.value = proximaCuota;
+  }
+
+  const cuotasPagadas = pagos.reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0);
+  const cuotasRestantes = credito ? Math.max(0, credito.meses - cuotasPagadas) : 0;
+
+  // Recomendación: nunca pagar menos de lo que quedó como cuota base
+  // (o del monto que falte dividido en las cuotas restantes).
+  const recomendado = credito && cuotasRestantes > 0
+    ? Math.max(credito.mensual, Math.ceil(restante / cuotasRestantes))
+    : null;
+
+  const creditoHtml = credito ? `
+    <div style="margin-top:.4rem;color:var(--gray-text)"><strong>Plan de cuotas:</strong> ${credito.meses} meses (tasa ${Math.round(credito.tasa*100)}%)</div>
+    <div style="margin-top:.25rem;color:var(--gray-text)">Pago mensual recomendado: <strong>${formatMoney(recomendado)}</strong></div>
+  ` :
+    `<div style="margin-top:.4rem;color:var(--gray-text)">Pago libre / contado (sin plan de cuotas registrado)</div>`;
+
+  if (infoEl) {
+    infoEl.innerHTML = `Total pagado: <strong>${formatMoney(pagadoReferencia)}</strong> / ${formatMoney(valorReferencia)} ` +
+      `(resta <strong>${formatMoney(restante)}</strong>)` +
+      creditoHtml;
+  }
+
+  const notaEl = document.getElementById('pagoMontoNote');
+  if (credito && recomendado != null && montoEl) {
+    montoEl.value = recomendado;
+    montoEl.min = recomendado;
+    montoEl.placeholder = `Mínimo ${formatMoney(recomendado)}`;
+    if (notaEl) notaEl.textContent = `Pago mínimo: ${formatMoney(recomendado)}. Puedes pagar más.`;
+  } else if (notaEl) {
+    notaEl.textContent = '';
+  }
+
+  const isPagado = restante <= 0;
+  if (montoEl) montoEl.disabled = isPagado;
+  if (submitBtn) submitBtn.disabled = isPagado;
+
+  if (isPagado && infoEl) {
+    infoEl.innerHTML = `<span style="color:var(--green)">Este lote ya se encuentra pagado en su totalidad.</span>`;
+  }
+}
+
+async function guardarPago() {
+  const loteId  = parseInt(document.getElementById('pagoLote')?.value);
+  if (!loteId) {
+    Toast.show('Selecciona un lote válido', 'error');
+    return;
+  }
+
+  // Determina el número de cuota automáticamente usando los pagos existentes
+  const pagos = await Pagos.getByLote(loteId);
+  const cuota = (pagos.reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0) || 0) + 1;
+
+  // LIMPIA EL MONTO AQUÍ:
+  let montoRaw  = document.getElementById('pagoMonto')?.value || '';
+  let monto     = Number(montoRaw.replace(/[^0-9,.-]+/g, '').replace(/\./g, '').replace(',', '.'));
+  const fecha   = document.getElementById('pagoFecha')?.value || new Date().toISOString().split('T')[0];
+  const nota    = document.getElementById('pagoNota')?.value.trim() || '';
+
+  // Validación: en planes de crédito no se puede pagar menos del recomendado
+  const lotePago = pagoLotesCache.find(l => l.id === loteId);
+  const totalPagado = pagos.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const esCredito = lotePago && lotePago.pago_tipo === 'credito';
+  if (esCredito) {
+    const credito = {
+      meses: Number(lotePago.credito_meses || 0),
+      mensual: Number(lotePago.credito_mensual || 0),
+      total: Number(lotePago.credito_total || Number(lotePago.valor || 0)),
+      pagado: Number(lotePago.credito_pagado || 0)
+    };
+    const cuotasPagadas = pagos.reduce((m, p) => Math.max(m, Number(p.nCuota || 0)), 0);
+    const cuotasRestantes = Math.max(0, credito.meses - cuotasPagadas);
+    const restante = Math.max(0, credito.total - Math.max(credito.pagado, totalPagado));
+    const recomendado = cuotasRestantes > 0 ? Math.max(credito.mensual, Math.ceil(restante / cuotasRestantes)) : credito.mensual;
+
+    if (recomendado && monto < recomendado) {
+      Toast.show(`El pago debe ser al menos ${formatMoney(recomendado)} (monto recomendado)`, 'error');
+      return;
+    }
+  }
+  let cliId     = session.id;
+  let cliNombre = session.nombre || 'Usuario';
+
+  if (IS_ADMIN) {
+    const sel = document.getElementById('pagoCliente');
+    const val = sel?.value;
+    if (val) {
+      cliId = parseInt(val);
+      const user = Users.getById(cliId) || {};
+      cliNombre = user.name || user.nombre || cliNombre;
+    }
+  }
+
+  if (!monto || monto <= 0) {
+    Toast.show('Ingresa un monto válido', 'error');
+    return;
+  }
+
+  // Evita pagos si ya está completamente cubierto
+  const valorLote = Number(lotePago?.valor || 0);
+  if (totalPagado >= valorLote) {
+    Toast.show('Este lote ya está pagado en su totalidad.', 'info');
+    return;
+  }
+
+  // Llama al backend para guardar el pago
+  const resp = await fetch('http://localhost:3000/api/pagos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      clienteId: cliId,
+      clienteNombre: cliNombre,
+      loteId,
+      nCuota: cuota,
+      monto,
+      fecha,
+      nota
+    })
+  });
+
+  const data = await resp.json();
+  if (data.ok) {
+    Toast.show('Pago registrado. Comprobante generado.', 'success');
+    Modal.close();
+    // Si tienes una función para recargar la página de pagos, llámala aquí
+    if (typeof loadPage === 'function') loadPage('pagos');
+  } else {
+    Toast.show(data.error || 'Error al guardar el pago', 'error');
+  }
+}
+
+async function verComprobante(pagoId) {
+  const pagos = await Pagos.getAll();
+  const pago = pagos.find(p => p.id === pagoId);
+  if (!pago) return;
+  Modal.open(await buildComprobante(pago)); // <-- aquí va el await
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+buildSidebar();
+loadPage('home');
+
+async function cargarPerfil() {
+  // Obtén el id de la sesión local
+  const session = Auth.getSession();
+  if (!session) return;
+
+  // Pide el usuario actualizado al backend
+  const res = await fetch(`http://localhost:3000/api/usuarios/${session.id}`);
+  const user = await res.json();
+  console.log('Usuario desde backend:', user);
+
+  // Ahora user.createdAt sí debe existir
+  // ... aquí actualizas el DOM con user.name, user.email, user.createdAt, etc ...
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const session = Auth.getSession ? Auth.getSession() : null;
+  if (!session) return;
+
+  const nombreEl = document.getElementById('nombrePerfil');
+  const emailEl  = document.getElementById('emailPerfil');
+  const telEl    = document.getElementById('telefonoPerfil');
+
+  if (nombreEl) nombreEl.textContent = session.nombre || '';
+  if (emailEl)  emailEl.textContent  = session.email  || '';
+  if (telEl)    telEl.textContent    = session.telefono || '';
+});
+</script>
+
+
+
+</div>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lotes Disponibles — TerraVerde</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-logo"><span class="logo-dot">◈</span> TerraVerde</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="proyecto.html">Proyecto</a></li>
+      <li><a href="lotes.html" class="active">Lotes</a></li>
+      <li><a href="pqrs.html">PQRS</a></li>
+      <li><a href="login.html" class="btn btn-ghost btn-sm">Iniciar Sesión</a></li>
+      <li><a href="registro.html" class="btn btn-primary btn-sm">Registrarse</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="Menú"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<section class="page-hero">
+  <div class="container">
+    <h1>Lotes Disponibles</h1>
+    <p>Encuentra el lote ideal para construir el hogar de tus sueños</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <!-- FILTROS -->
+    <div class="filters-bar">
+      <div class="filter-item">
+        <label>Estado</label>
+        <select id="fEstado" onchange="filtrar()">
+          <option value="">Todos</option>
+          <option value="disponible">Disponible</option>
+          <option value="reservado">Reservado</option>
+          <option value="vendido">Vendido</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>Área mínima</label>
+        <select id="fArea" onchange="filtrar()">
+          <option value="">Cualquiera</option>
+          <option value="100">100 m²</option>
+          <option value="150">150 m²</option>
+          <option value="180">180 m²</option>
+          <option value="200">200 m²</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>Precio máximo</label>
+        <select id="fPrecio" onchange="filtrar()">
+          <option value="">Sin límite</option>
+          <option value="50000000">Hasta $50.000.000</option>
+          <option value="70000000">Hasta $70.000.000</option>
+          <option value="90000000">Hasta $90.000.000</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label>Etapa</label>
+        <select id="fEtapa" onchange="filtrar()">
+          <option value="">Todas</option>
+          <option value="Lanzamiento">Lanzamiento</option>
+          <option value="Preventa">Preventa</option>
+          <option value="Construcción">Construcción</option>
+          <option value="Entrega">Entrega</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+
+    <p class="results-count" id="resultsCount"></p>
+    <div class="lotes-grid" id="lotesGrid"></div>
+  </div>
+</section>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="if(event.target===this)Modal.close()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand"><a href="index.html" class="nav-logo" style="color:#fff"><span class="logo-dot">◈</span> TerraVerde</a></div>
+    <div class="footer-col"><h4>Navegación</h4><a href="index.html">Inicio</a><a href="proyecto.html">Proyecto</a><a href="pqrs.html">PQRS</a></div>
+    <div class="footer-col"><h4>Contacto</h4><p>📧 info@terraverde.co</p><p>📞 +57 300 123 4567</p></div>
+  </div>
+  <div class="footer-bottom">© 2024 TerraVerde. Todos los derechos reservados.</div>
+</footer>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="js/app.js?v=2"></script>
+<script>
+console.log('lotes.html script loaded');
+
+async function cargarLotes() {
+  try {
+    // Usar el helper API que incluye JWT automáticamente
+    const data = await API.get('/api/lotes');
+    if (data && Array.isArray(data)) {
+      // Mostrar solo lotes disponibles en la lista de selección
+      const lotesDisponibles = data.filter(l => l.estado === 'disponible');
+      renderLotes(lotesDisponibles);
+    } else if (data.error) {
+      Toast.show(data.error, 'error');
+    }
+  } catch (error) {
+    Toast.show('Error al cargar lotes', 'error');
+    console.error(error);
+  }
+}
+
+function renderLotes(lotes) {
+  const cont = document.getElementById('lotesGrid');
+  if (!cont) return;
+  if (!lotes.length) {
+    cont.innerHTML = '<div class="empty-state">No hay lotes disponibles.</div>';
+    return;
+  }
+  document.getElementById('resultsCount').textContent = `${lotes.length} lotes encontrados`;
+  cont.innerHTML = lotes.map(lote => {
+    // Colores y textos según estado
+    let border = '';
+    let badge = '';
+    let btn = '';
+    const isCredito = lote.pago_tipo === 'credito';
+    const credit = isCredito ? {
+      meses: lote.credito_meses,
+      tasa: lote.credito_tasa,
+      mensual: lote.credito_mensual,
+      total: lote.credito_total,
+      pagado: lote.credito_pagado,
+      restante: lote.credito_total ? Number(lote.credito_total) - Number(lote.credito_pagado || 0) : null
+    } : null;
+
+    if (lote.estado === 'disponible') {
+      border = 'border-green';
+      badge = `<span class="badge badge-disponible">Disponible</span>`;
+      btn = `<button class="btn btn-primary btn-full" onclick="reservarLoteCliente(${lote.id}, ${lote.valor})" id="btnReservar_${lote.id}">Me interesa</button>`;
+    } else if (lote.estado === 'reservado') {
+      border = 'border-yellow';
+      badge = `<span class="badge badge-reservado">Reservado</span>`;
+      btn = `<button class="btn btn-ghost btn-full" disabled>⏳ Reservado</button>`;
+    } else if (lote.estado === 'vendido') {
+      border = 'border-red';
+      badge = `<span class="badge badge-vendido">Vendido</span>`;
+      btn = `<button class="btn btn-ghost btn-full" disabled>✗ Vendido</button>`;
+    }
+
+    const planLabel = credit ? `<div style="margin-top:.5rem;font-size:.85rem;color:var(--gray-text)">` +
+      `<strong>Crédito:</strong> ${credit.meses} meses (tasa ${Math.round(credit.tasa*100)}%) — ` +
+      `Pago mensual: $${Number(credit.mensual).toLocaleString('es-CO')} (resta $${Number(credit.restante).toLocaleString('es-CO')})</div>` : '';
+
+    return `
+      <div class="lote-card ${border}" id="loteCard_${lote.id}">
+        <div class="lote-card-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+          <span style="font-size:.98em;color:#888">Lote #${lote.id}</span>
+          ${badge}
+        </div>
+        <div class="lote-card-body">
+          <div class="lote-area" style="font-size:2rem;font-weight:800;margin-bottom:.3rem">${lote.area} m²</div>
+          <div class="lote-info" style="font-size:.98em;color:#444;margin-bottom:.5rem">
+            <div><span style="color:#f59e42">🔑</span> ${lote.ubicacion}</div>
+            <div><span style="color:#f59e42">🗂️</span> Etapa: ${lote.etapa}</div>
+          </div>
+          <div class="lote-valor" style="font-size:1.3rem;font-weight:800;color:#1d3b7a;margin:.7rem 0">$${lote.valor.toLocaleString('es-CO')}</div>
+          ${planLabel}
+        </div>
+        <div class="lote-card-footer" style="margin-top:.5rem">
+          ${btn}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+
+// Llama la función al cargar la página
+document.addEventListener('DOMContentLoaded', cargarLotes);
+
+async function reservarLoteCliente(loteId, loteValor) {
+  if (!session || !session.id) {
+    Toast.show('Debes iniciar sesión para reservar un lote', 'error');
+    return;
+  }
+
+  Modal.open(`
+    <h3>Reservar Lote #${loteId}</h3>
+    <p>¿Cómo deseas reservar?</p>
+    <div style="display:flex;gap:.75rem;margin:1rem 0">
+      <button class="btn btn-primary btn-full" onclick="confirmarReserva(${loteId}, ${loteValor}, true)">Pagar de contado</button>
+      <button class="btn btn-ghost btn-full" onclick="openCuotasModal(${loteId}, ${loteValor})">Reservar y pagar a cuotas</button>
+    </div>
+    <p style="font-size:.85rem;color:var(--gray-text)">Si eliges pagar de contado, podrás registrar el pago ahora y el lote quedará como <strong>vendido</strong> automáticamente.</p>
+  `);
+}
+
+function openCuotasModal(loteId, loteValor) {
+  const options = [
+    { meses: 6, tasa: 0.10, label: '6 meses (10%)' },
+    { meses: 12, tasa: 0.12, label: '12 meses (12%)' },
+    { meses: 24, tasa: 0.15, label: '24 meses (15%)' }
+  ];
+
+  const buildOption = (opt) => {
+    const total = loteValor * (1 + opt.tasa);
+    const mensual = total / opt.meses;
+    return `<div class="credit-plan" style="border:1px solid var(--gray-light);border-radius:12px;padding:1rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <strong>${opt.label}</strong>
+        <button class="btn btn-sm btn-primary" onclick="confirmarPagoCuotas(${loteId}, ${loteValor}, ${opt.meses}, ${opt.tasa}, ${mensual.toFixed(0)})">Seleccionar</button>
+      </div>
+      <div style="font-size:.9rem;color:var(--gray-text)">Total con interés: <strong>$${Number(total).toLocaleString('es-CO')}</strong></div>
+      <div style="font-size:.9rem;color:var(--gray-text)">Pago mensual estimado: <strong>$${Number(mensual).toLocaleString('es-CO')}</strong></div>
+    </div>`;
+  };
+
+  Modal.open(`
+    <h3>Pago a cuotas</h3>
+    <p>Selecciona el plan de cuotas que prefieras. El primer pago se registrará al reservar.</p>
+    <div style="margin-top:1rem">${options.map(buildOption).join('')}</div>
+    <div style="margin-top:1rem;font-size:.85rem;color:var(--gray-text)">Nota: el primer pago se registra automáticamente al confirmar el plan.</div>
+  `);
+}
+
+async function confirmarPagoCuotas(loteId, loteValor, meses, tasa, mensual) {
+  const total = loteValor * (1 + tasa);
+  const restante = Math.max(0, total - Number(mensual));
+
+  const body = {
+    clienteId: session.id,
+    pago: {
+      monto: mensual,
+      nCuota: 1,
+      fecha: new Date().toISOString(),
+      nota: `Cuota 1 de ${meses} (tasa ${Math.round(tasa*100)}%)`,
+      tipo: 'credito',
+      meses,
+      tasa,
+      mensual,
+      total
+    }
+  };
+
+  // Usar el helper API con JWT automático
+  const data = await API.post(`/api/lotes/${loteId}/reservar`, body);
+  if (data && data.ok) {
+    // Guarda el plan de cuotas localmente para mostrarlo en la lista
+    if (typeof Credit !== 'undefined') {
+      Credit.save(loteId, {
+        meses,
+        tasa,
+        mensual: Number(mensual),
+        total,
+        pagado: Number(mensual),
+        restante
+      });
+    }
+    Toast.show(`Plan de ${meses} meses seleccionado. Primera cuota: $${Number(mensual).toLocaleString('es-CO')}`, 'success');
+    Modal.close();
+    cargarLotes();
+  } else {
+    Toast.show(data.error || 'No se pudo reservar el lote', 'error');
+  }
+}
+
+async function confirmarReserva(loteId, loteValor, pagarContado) {
+  const body = { clienteId: session.id };
+
+  if (pagarContado) {
+    const monto = loteValor;
+    body.pago = {
+      monto,
+      nCuota: 1,
+      fecha: new Date().toISOString(),
+      nota: 'Pago al reservar (contado)',
+      tipo: 'contado'
+    };
+  } else {
+    // Usar el modal de cuotas para seleccionar una opción de plan
+    openCuotasModal(loteId, loteValor);
+    return;
+  }
+
+  // Usar el helper API con JWT automático
+  const data = await API.post(`/api/lotes/${loteId}/reservar`, body);
+  if (data && data.ok) {
+    if (pagarContado && typeof Credit !== 'undefined') {
+      Credit.clear(loteId);
+    }
+    Toast.show(pagarContado ? 'Pago realizado y lote reservado' : 'Cuota registrada y lote reservado', 'success');
+    Modal.close();
+    cargarLotes();
+  } else {
+    Toast.show(data.error || 'No se pudo reservar el lote', 'error');
+  }
+}
+</script>
+</body>
+</html>

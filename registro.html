@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear Cuenta — TerraVerde</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20128%20128'%3E%3Ccircle%20cx='64'%20cy='64'%20r='60'%20fill='%231d3b7a'/%3E%3Ctext%20x='50%25'%20y='55%25'%20font-size='72'%20text-anchor='middle'%20fill='%23fff'%20font-family='Arial'%3E%E2%96%A8%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="auth-page">
+
+<div class="auth-split">
+  <div class="auth-left">
+    <a href="index.html" class="nav-logo"><span class="logo-dot">◈</span> TerraVerde</a>
+    <div class="auth-visual-box">
+      <div class="auth-lot-map">
+        <div class="lot disponible"></div><div class="lot disponible"></div><div class="lot reservado"></div>
+        <div class="lot disponible"></div><div class="lot vendido"></div><div class="lot disponible"></div>
+        <div class="lot disponible"></div><div class="lot reservado"></div><div class="lot disponible"></div>
+      </div>
+      <h2>Empieza tu camino hacia tu lote propio</h2>
+      <p>Regístrate y accede a precios de preventa exclusivos, planos gratis y pago por cuotas.</p>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <div class="auth-box">
+      <h1>Crear Cuenta</h1>
+      <p class="auth-sub">Completa el formulario — es gratis y toma menos de 2 minutos.</p>
+
+      <form id="registroForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="nombre">Nombre Completo *</label>
+            <input type="text" id="nombre" placeholder="Ej: Juan García" required>
+            <span class="field-error" id="nombreErr"></span>
+          </div>
+          <div class="form-group">
+            <label for="telefono">Teléfono</label>
+            <input type="tel" id="telefono" placeholder="300 123 4567">
+            <span class="field-error" id="telefonoErr"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="regEmail">Correo Electrónico *</label>
+          <input type="email" id="regEmail" placeholder="correo@ejemplo.com" required>
+          <span class="field-error" id="regEmailErr"></span>
+        </div>
+        <div class="form-group">
+          <label for="regPw">Contraseña * <small style="color:var(--gray-text)">(mínimo 6 caracteres)</small></label>
+          <div class="input-wrap">
+            <input type="password" id="regPw" placeholder="••••••••" required>
+            <button type="button" class="input-icon" onclick="togglePw('regPw')" aria-label="Ver contraseña">👁</button>
+          </div>
+          <div class="pw-strength"><div class="pw-bar" id="pwBar"></div></div>
+          <span class="field-error" id="regPwErr"></span>
+        </div>
+        <div class="form-group">
+          <label for="confirmPw">Confirmar Contraseña *</label>
+          <div class="input-wrap">
+            <input type="password" id="confirmPw" placeholder="••••••••" required>
+            <button type="button" class="input-icon" onclick="togglePw('confirmPw')" aria-label="Ver contraseña">👁</button>
+          </div>
+          <span class="field-error" id="confirmPwErr"></span>
+        </div>
+        <div class="form-group">
+          <label for="tipoUsuario">Tipo de Usuario</label>
+          <select id="tipoUsuario" disabled>
+            <option value="cliente">Cliente</option>
+          </select>
+          <small style="color:var(--gray-text);font-size:.75rem">Los administradores son asignados internamente.</small>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="terms" required>
+            Acepto los <a href="#" style="color:var(--blue)">términos y condiciones</a> de TerraVerde
+          </label>
+          <span class="field-error" id="termsErr"></span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="regBtn">Crear Cuenta →</button>
+        <script src="js/app.js"></script>
+        <script>
+        if (Auth.getSession()) window.location.href = 'dashboard.html';
+
+        // Fortaleza de contraseña en tiempo real
+        document.getElementById('regPw').addEventListener('input', function() {
+          checkPwStrength(this.value, 'pwBar');
+        });
+
+        // Validar confirmación en tiempo real
+        document.getElementById('confirmPw').addEventListener('input', function() {
+          const pw = document.getElementById('regPw').value;
+          if (this.value && this.value !== pw) Validate.setError('confirmPwErr', 'Las contraseñas no coinciden');
+          else Validate.clearError('confirmPwErr');
+        });
+
+        document.getElementById('registroForm').addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const nombre = document.getElementById('nombre').value.trim();
+          const email = document.getElementById('regEmail').value.trim();
+          const password = document.getElementById('regPw').value;
+          const telefono = document.getElementById('telefono').value.trim(); // <-- AGREGA ESTA LÍNEA
+          try {
+            const res = await fetch('http://localhost:3000/api/usuarios', { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ nombre, email, password, telefono }) 
+            });
+            const result = await res.json();
+
+            if (res.ok) {
+              // Obtén el usuario recién creado usando el ID
+              const userRes = await fetch(`http://localhost:3000/api/usuarios/${result.id}`);
+              const userData = await userRes.json();
+              localStorage.setItem('tv_session', JSON.stringify(userData.user));
+              Toast.show('¡Registro exitoso! Ahora puedes iniciar sesión.', 'success');
+              setTimeout(() => window.location.href = 'login.html', 1200);
+            } else {
+              Toast.show(result.error || 'No se pudo registrar', 'error');
+            }
+          } catch (err) {
+            console.error(err);
+            Toast.show('No se pudo conectar al servidor', 'error');
+          }
+        });
+
+        // Cargar datos del usuario si ya está registrado (edición de perfil)
+        async function cargarDatosUsuario() {
+          const user = await Auth.getSession();
+          if (user) {
+            document.getElementById('nombre').value = user.nombre || '';
+            document.getElementById('regEmail').value = user.email || '';
+            document.getElementById('telefono').value = user.telefono || '';
+          }
+        }
+        cargarDatosUsuario();
+        </script>
+      </form>
+
+      <p class="auth-footer">¿Ya tienes cuenta? <a href="login.html">Inicia Sesión</a></p>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+</body>
+</html>

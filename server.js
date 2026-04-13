@@ -678,3 +678,5 @@ app.listen(PORT, () => {
   console.log(`Backend TerraVerde corriendo en http://localhost:${PORT}`);
 });
 
+module.exports = app;
+
